@@ -1,5 +1,5 @@
 # ============================================================
-# grindstone configuration
+# prepdojo configuration
 # Edit this file, then run:  python3 generate.py
 # All generated files land in dist/ — copy them into your vault
 # (or run  python3 generate.py --install /path/to/your/vault)

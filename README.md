@@ -1,8 +1,8 @@
-# Grindstone 🪨
+# PrepDojo 🥋
 
-*Keep your interview prep sharp.*
+*Show up daily. Log in seconds. Leave sharper.*
 
-Grindstone is a **daily-practice tracking system** built on [Obsidian](https://obsidian.md). One hotkey or a pasted LeetCode link is a complete log entry; one note is your whole picture, with streaks, topic and difficulty breakdowns, and a "needs re-review" list, always current.
+PrepDojo is a **daily-practice tracking system** built on [Obsidian](https://obsidian.md). One hotkey or a pasted LeetCode link is a complete log entry; one note is your whole picture, with streaks, topic and difficulty breakdowns, and a "needs re-review" list, always current.
 
 It ships as three coordinated layers, all generated from one config file:
 
@@ -78,7 +78,7 @@ That's the entire data model. Three tools write and read these lines:
 
 ## Quick start
 
-The defaults work out of the box. You only need to tell grindstone where things live in your vault.
+The defaults work out of the box. You only need to tell PrepDojo where things live in your vault.
 
 **1. Check three settings** in the `[vault]` section of `config.toml`:
 

@@ -48,7 +48,7 @@ CAPTURE_FORMATS = {
 
 def stable_id(key: str) -> str:
     """Deterministic UUID per category so hotkeys.json always matches data.json."""
-    return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"grindstone/{key}"))
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"prepdojo/{key}"))
 
 
 def load_config() -> dict:
@@ -233,7 +233,7 @@ def main() -> None:
         # overwritten if it still matches the checksum we last installed,
         # i.e. the user never edited it. Edited files are preserved and the
         # fresh version is written alongside as *.new.* for manual merging.
-        manifest_path = vault / ".obsidian" / "grindstone-manifest.json"
+        manifest_path = vault / ".obsidian" / "prepdojo-manifest.json"
         try:
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         except (FileNotFoundError, json.JSONDecodeError):
@@ -263,7 +263,7 @@ def main() -> None:
                 if (user_modified or unknown_origin) and not args.force:
                     new_path = dst.with_name(dst.stem + ".new" + dst.suffix)
                     shutil.copyfile(src, new_path)
-                    reason = "edited by you" if user_modified else "not installed by grindstone"
+                    reason = "edited by you" if user_modified else "not installed by prepdojo"
                     print(f"  PRESERVED ({reason}): {dst}")
                     print(f"    new version written to: {new_path}")
                     print(f"    merge manually, or rerun with --force to overwrite")
