@@ -11,6 +11,7 @@ dependencies.
 """
 
 import argparse
+import hashlib
 import json
 import shutil
 import sys
@@ -227,6 +228,20 @@ def main() -> None:
         if not vault.is_dir():
             sys.exit(f"Not a directory: {vault}")
         print(f"\nInstalling into {vault} ...")
+
+        # Manifest of checksums from previous installs. A target file is only
+        # overwritten if it still matches the checksum we last installed,
+        # i.e. the user never edited it. Edited files are preserved and the
+        # fresh version is written alongside as *.new.* for manual merging.
+        manifest_path = vault / ".obsidian" / "grindstone-manifest.json"
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, json.JSONDecodeError):
+            manifest = {}
+
+        def checksum(path: Path) -> str:
+            return hashlib.sha256(path.read_bytes()).hexdigest()
+
         pairs = [
             (DIST / "vault" / v["daily_note_template"], vault / v["daily_note_template"]),
             (DIST / "vault" / v["dashboard_path"], vault / v["dashboard_path"]),
@@ -235,12 +250,31 @@ def main() -> None:
              vault / ".obsidian" / "plugins" / "quickadd" / "data.json"),
         ]
         for src, dst in pairs:
-            if dst.exists() and not args.force:
-                print(f"  SKIPPED (exists, use --force): {dst}")
-                continue
+            key = dst.relative_to(vault).as_posix()
+            src_sum = checksum(src)
+            if dst.exists():
+                dst_sum = checksum(dst)
+                if dst_sum == src_sum:
+                    print(f"  up to date: {dst}")
+                    manifest[key] = src_sum
+                    continue
+                user_modified = manifest.get(key) is not None and manifest[key] != dst_sum
+                unknown_origin = manifest.get(key) is None
+                if (user_modified or unknown_origin) and not args.force:
+                    new_path = dst.with_name(dst.stem + ".new" + dst.suffix)
+                    shutil.copyfile(src, new_path)
+                    reason = "edited by you" if user_modified else "not installed by grindstone"
+                    print(f"  PRESERVED ({reason}): {dst}")
+                    print(f"    new version written to: {new_path}")
+                    print(f"    merge manually, or rerun with --force to overwrite")
+                    continue
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(src, dst)
+            manifest[key] = src_sum
             print(f"  installed {dst}")
+
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
         print(
             "\nNot auto-installed: hotkeys. Merge dist/obsidian/hotkeys-snippet.json\n"
             "into <vault>/.obsidian/hotkeys.json yourself (or assign hotkeys in\n"
