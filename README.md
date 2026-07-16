@@ -1,8 +1,8 @@
-# grindstone
+# Grindstone 🪨
 
 *Keep your interview prep sharp.*
 
-grindstone is a **daily-practice tracking system** built on [Obsidian](https://obsidian.md). One hotkey or a pasted LeetCode link is a complete log entry; one note is your whole picture, with streaks, topic and difficulty breakdowns, and a "needs re-review" list, always current.
+Grindstone is a **daily-practice tracking system** built on [Obsidian](https://obsidian.md). One hotkey or a pasted LeetCode link is a complete log entry; one note is your whole picture, with streaks, topic and difficulty breakdowns, and a "needs re-review" list, always current.
 
 It ships as three coordinated layers, all generated from one config file:
 
@@ -11,6 +11,42 @@ It ships as three coordinated layers, all generated from one config file:
 - **Insight** — a live Dataview dashboard computing streaks, per-topic and per-difficulty breakdowns, and a "needs re-review" list
 
 The default configuration tracks ML engineer interview prep (LeetCode, ML fundamentals, ML coding, system design, behavioral), but nothing is hardcoded: categories, tags, topic taxonomies, folder layout, hotkeys, and formats all live in `config.toml`, and `generate.py` rebuilds every layer — Obsidian configs, QuickAdd actions, dashboard, and the AI skill — to match. Rename the categories and the same machinery tracks language learning, fitness, or any daily practice.
+
+## System overview
+
+Daily workflow, from a solved problem to insight:
+
+```mermaid
+flowchart LR
+    subgraph capture ["⚡ Capture (seconds)"]
+        QA["QuickAdd hotkey<br/>labeled prompts + dropdowns"]
+        CS["Claude skill<br/>paste a link or say 'log it'"]
+        MB["Manual bullet<br/>type it yourself"]
+    end
+    subgraph storage ["📝 Storage (plain markdown)"]
+        DN["Daily notes<br/><code>- LC #200 Number of Islands · Medium · bfs/dfs #lc</code>"]
+    end
+    subgraph insight ["📊 Insight (always current)"]
+        DB["Dataview dashboard<br/>streaks · topic coverage · difficulty mix · needs re-review"]
+    end
+    QA --> DN
+    CS --> DN
+    MB --> DN
+    DN --> DB
+```
+
+One-time setup, everything personalized from a single file:
+
+```mermaid
+flowchart LR
+    CFG["config.toml<br/>paths · tags · categories<br/>topics · hotkeys"] --> GEN["generate.py"]
+    GEN --> T["Daily note template"]
+    GEN --> D["Dashboard note"]
+    GEN --> Q["QuickAdd actions<br/>+ hotkey bindings"]
+    GEN --> S["lc-logger<br/>Claude skill"]
+    T & D & Q --> V["Your Obsidian vault"]
+    S --> C["Your Claude setup"]
+```
 
 ## How it works
 
