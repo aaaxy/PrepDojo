@@ -2,7 +2,9 @@
 
 *Keep your interview prep sharp.*
 
-grindstone is a **daily-practice tracking framework** built on [Obsidian](https://obsidian.md). It ships as three coordinated layers, all generated from one config file:
+grindstone is a **daily-practice tracking system** built on [Obsidian](https://obsidian.md). One hotkey or a pasted LeetCode link is a complete log entry; one note is your whole picture, with streaks, topic and difficulty breakdowns, and a "needs re-review" list, always current.
+
+It ships as three coordinated layers, all generated from one config file:
 
 - **Capture** — instant logging from anywhere: QuickAdd hotkey actions with dropdown prompts inside Obsidian, or an AI logging skill (Claude) that turns "just did two sum" or a pasted LeetCode URL into a correctly formatted entry
 - **Storage** — entries are plain markdown bullets in your daily notes: human-readable, grep-able, no database, no lock-in
