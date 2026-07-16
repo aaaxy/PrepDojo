@@ -78,34 +78,59 @@ That's the entire data model. Three tools write and read these lines:
 
 ## Quick start
 
-1. Edit `config.toml`. Every knob lives there: folder paths, date format, tags, category names, hotkeys, the LeetCode topic taxonomy, and difficulty labels.
-2. Generate:
+The defaults work out of the box. You only need to tell grindstone where things live in your vault.
 
-   ```bash
-   python3 generate.py
-   ```
+**1. Check three settings** in the `[vault]` section of `config.toml`:
 
-   Everything lands in `dist/`, personalized to your config.
-3. Install into your vault, either automatically:
+| Setting | What it is | Default |
+|---|---|---|
+| `daily_notes_folder` | where your daily notes live | `Calendar/Daily Notes` |
+| `daily_note_template` | where the daily note template goes | `Templates/Daily Note.md` |
+| `dashboard_path` | where the dashboard note goes | `Interview Prep Dashboard.md` |
 
-   ```bash
-   python3 generate.py --install /path/to/YourVault
-   ```
+Already using daily notes? Set `daily_notes_folder` to your existing folder. New vault? Keep the defaults. Everything else in the file (tags, hotkeys, topics) has sensible defaults you can revisit later; see [Configuration](#configuration).
 
-   Installs are edit-safe: grindstone keeps a checksum manifest (`.obsidian/grindstone-manifest.json`) of everything it installs. Files you've never touched are updated in place; files you've edited (or that grindstone didn't create) are left alone, and the fresh version lands next to them as `*.new.md` for manual merging. `--force` overwrites unconditionally. You can also install by hand:
+**2. Generate and install:**
 
-   | File in `dist/` | Where it goes |
-   |---|---|
-   | `vault/<your template path>` | same path inside your vault |
-   | `vault/<your dashboard path>` | same path inside your vault |
-   | `obsidian/daily-notes.json` | `<vault>/.obsidian/daily-notes.json` |
-   | `obsidian/plugins/quickadd/data.json` | `<vault>/.obsidian/plugins/quickadd/data.json` (see warning below) |
-   | `obsidian/hotkeys-snippet.json` | merge into `<vault>/.obsidian/hotkeys.json` |
-   | `claude-skill/lc-logger.skill` | install in Claude (see below) |
+```bash
+python3 generate.py --install /path/to/YourVault
+```
 
-4. Restart Obsidian so it picks up the config files.
+Installs are edit-safe: files you've modified are never overwritten (the fresh version lands next to them as `*.new.md`; details in [Changing your configuration later](#changing-your-configuration-later)).
 
-> **Warning**: the generated QuickAdd `data.json` replaces the plugin's existing configuration. If you already use QuickAdd for other things, don't copy the file; instead recreate the five capture choices manually following [docs/manual-setup.md](docs/manual-setup.md).
+**3. Restart Obsidian**, then two clicks of wiring: enable **JavaScript queries** in Dataview's settings, and assign hotkeys under Settings → Hotkeys → search "QuickAdd" (suggested: `Cmd/Ctrl+Shift+L` for LeetCode).
+
+**4. Try it.** Press the hotkey, log a problem for "today", and open the dashboard note in Reading view. You should see the entry in the tables and a one-day streak.
+
+<details>
+<summary>Installing by hand instead (or if you already use QuickAdd)</summary>
+
+Run `python3 generate.py` without `--install`, then copy from `dist/`:
+
+| File in `dist/` | Where it goes |
+|---|---|
+| `vault/<your template path>` | same path inside your vault |
+| `vault/<your dashboard path>` | same path inside your vault |
+| `obsidian/daily-notes.json` | `<vault>/.obsidian/daily-notes.json` |
+| `obsidian/plugins/quickadd/data.json` | `<vault>/.obsidian/plugins/quickadd/data.json` |
+| `obsidian/hotkeys-snippet.json` | merge into `<vault>/.obsidian/hotkeys.json` |
+| `claude-skill/lc-logger.skill` | install in Claude (see [Logging](#logging)) |
+
+**Warning**: the generated QuickAdd `data.json` replaces that plugin's existing configuration. If you already use QuickAdd for other things, don't copy the file; recreate the capture choices manually following [docs/manual-setup.md](docs/manual-setup.md).
+
+</details>
+
+## Configuration
+
+All configuration lives in `config.toml`, grouped by how likely you are to touch it:
+
+| Group | Settings | When you'd change it |
+|---|---|---|
+| `[vault]` | `daily_notes_folder`, `daily_note_template`, `dashboard_path`, `date_format`, `prep_heading` | day one, to match your vault layout |
+| `[categories.*]` | `name`, `tag`, `hotkey` per category | to rename categories, change tags, or add hotkeys; rename all five and the same system tracks any daily practice |
+| `[leetcode]` | `topics`, `difficulties` | to adjust the topic taxonomy the dropdowns and dashboard grouping use |
+
+After any change, rerun `python3 generate.py --install /path/to/YourVault` (see [Changing your configuration later](#changing-your-configuration-later)).
 
 ## Logging
 
@@ -149,4 +174,6 @@ dist/                generated output (gitignored)
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+[PolyForm Noncommercial 1.0.0](LICENSE): free to use, modify, and share for any noncommercial purpose (personal use, education, research, nonprofits). Commercial use requires a separate license from the author.
+
+Copyright (c) 2026 [aaaxy](https://github.com/aaaxy)
