@@ -1,0 +1,309 @@
+#!/usr/bin/env python3
+"""prepdojo CLI: log daily practice entries into your Obsidian vault.
+
+Examples:
+    python3 prepdojo.py log lc "#200 Number of Islands" -d medium -t bfs/dfs
+    python3 prepdojo.py log lc "#322 Coin Change" -d M -t dp --note "needed hints" --date yesterday
+    python3 prepdojo.py log mlfund "batch norm" --conf yellow
+    python3 prepdojo.py log bq "conflict with PM story"
+    python3 prepdojo.py streak
+    python3 prepdojo.py topics
+
+The vault location is resolved in this order:
+    1. --vault flag
+    2. PREPDOJO_VAULT environment variable
+    3. `path` under [vault] in config.toml
+
+Writes plain markdown only; Obsidian does not need to be running.
+"""
+
+import argparse
+import datetime as dt
+import difflib
+import os
+import re
+import sys
+from pathlib import Path
+
+try:
+    import tomllib
+except ModuleNotFoundError:
+    try:
+        import tomli as tomllib  # Python < 3.11 fallback
+    except ModuleNotFoundError:
+        sys.exit("Needs Python 3.11+, or on older Pythons: pip install tomli")
+
+ROOT = Path(__file__).parent
+
+CONFIDENCE = {"green": "\U0001f7e2", "yellow": "\U0001f7e1", "red": "\U0001f534"}
+
+WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+
+
+def load_config() -> dict:
+    with open(ROOT / "config.toml", "rb") as f:
+        return tomllib.load(f)
+
+
+def resolve_vault(args, cfg) -> Path:
+    candidate = args.vault or os.environ.get("PREPDOJO_VAULT") or cfg["vault"].get("path")
+    if not candidate:
+        sys.exit(
+            "No vault location set. Use --vault, set PREPDOJO_VAULT, or add\n"
+            '    path = "/absolute/path/to/YourVault"\n'
+            "under [vault] in config.toml"
+        )
+    vault = Path(candidate).expanduser()
+    if not vault.is_dir():
+        sys.exit(f"Vault directory not found: {vault}")
+    return vault
+
+
+def resolve_date(spec: str) -> dt.date:
+    today = dt.date.today()
+    s = (spec or "today").strip().lower()
+    if s in ("today", "t"):
+        return today
+    if s in ("yesterday", "yd"):
+        return today - dt.timedelta(days=1)
+    if s in WEEKDAYS or s.startswith("last "):
+        name = s.removeprefix("last ").strip()
+        if name in WEEKDAYS:
+            delta = (today.weekday() - WEEKDAYS.index(name)) % 7 or 7
+            return today - dt.timedelta(days=delta)
+    try:
+        return dt.date.fromisoformat(s)
+    except ValueError:
+        sys.exit(f"Cannot parse date '{spec}'. Use today, yesterday, a weekday, or YYYY-MM-DD.")
+
+
+def moment_to_strftime(fmt: str) -> str:
+    """Translate the moment.js tokens this project uses into strftime."""
+    out, mapping = fmt, {
+        "dddd": "%A", "MMMM": "%B", "YYYY": "%Y", "MM": "%m", "DD": "%d",
+    }
+    for token, strf in mapping.items():
+        out = out.replace(token, strf)
+    # Bare D (day of month, no leading zero) — handle after longer tokens
+    out = re.sub(r"(?<!%)\bD\b", "%-d" if os.name != "nt" else "%#d", out)
+    return out
+
+
+def daily_note_path(vault: Path, cfg: dict, date: dt.date) -> Path:
+    folder = vault / cfg["vault"]["daily_notes_folder"]
+    fname = date.strftime(moment_to_strftime(cfg["vault"]["date_format"])) + ".md"
+    return folder / fname
+
+
+def render_template(cfg: dict, vault: Path, date: dt.date) -> str:
+    tmpl_path = vault / cfg["vault"]["daily_note_template"]
+    if tmpl_path.exists():
+        text = tmpl_path.read_text(encoding="utf-8")
+    else:
+        text = f"# {{{{date:dddd, MMMM D, YYYY}}}}\n\n{cfg['vault']['prep_heading']}\n"
+
+    def repl(m):
+        fmt = m.group(1)
+        if fmt is None:
+            return date.isoformat()
+        return date.strftime(moment_to_strftime(fmt))
+
+    return re.sub(r"\{\{date(?::([^}]*))?\}\}", repl, text)
+
+
+def normalize_difficulty(raw: str, difficulties: list[str]) -> str:
+    if not raw:
+        return ""
+    for d in difficulties:
+        if raw.lower() in (d.lower(), d[0].lower()):
+            return d
+    sys.exit(f"Unknown difficulty '{raw}'. Expected one of: "
+             + ", ".join(difficulties) + " (or initials)")
+
+
+def normalize_topic(raw: str, topics: list[str]) -> str:
+    if not raw:
+        return ""
+    t = raw.strip().lower()
+    main = t.split(" - ")[0].strip()
+    if main in topics:
+        return t
+    close = difflib.get_close_matches(main, topics, n=3, cutoff=0.5)
+    hint = f" Did you mean: {', '.join(close)}?" if close else ""
+    sys.exit(f"Unknown topic '{main}'.{hint}\n"
+             f"(taxonomy: {', '.join(topics)}; finer divisions like 'dp - knapsack' are fine)")
+
+
+def build_entry(args, cfg) -> str:
+    cat = cfg["categories"][args.category]
+    tag = cat["tag"]
+    text = args.text.strip()
+    if args.category == "lc":
+        diff = normalize_difficulty(args.difficulty, cfg["leetcode"]["difficulties"])
+        topic = normalize_topic(args.topic, cfg["leetcode"]["topics"])
+        if not diff or not topic:
+            sys.exit("LeetCode entries need -d/--difficulty and -t/--topic")
+        parts = [f"LC {text}", diff, topic]
+        if args.note:
+            parts.append(args.note.strip())
+        return "- " + " · ".join(parts) + f" #{tag}"
+    if args.category == "mlfund":
+        conf = CONFIDENCE[args.conf]
+        return f"- {text} · {conf} #{tag}"
+    entry = f"- {text}"
+    if args.note:
+        entry += f" · {args.note.strip()}"
+    return entry + f" #{tag}"
+
+
+def problem_key(text: str) -> str | None:
+    """A LeetCode problem number like '#200' or '200.', for dedupe."""
+    m = re.search(r"#\s*(\d+)|\b(\d+)\.", text)
+    return (m.group(1) or m.group(2)) if m else None
+
+
+def insert_entry(note_path: Path, cfg: dict, entry: str, vault: Path, date: dt.date) -> str:
+    heading = cfg["vault"]["prep_heading"]
+    if note_path.exists():
+        content = note_path.read_text(encoding="utf-8")
+    else:
+        content = render_template(cfg, vault, date)
+
+    lines = content.splitlines()
+    if heading not in lines:
+        lines += ["", heading, ""]
+
+    # find section bounds
+    start = lines.index(heading) + 1
+    end = start
+    level = heading.split(" ")[0] + " "
+    while end < len(lines) and not lines[end].startswith(level):
+        end += 1
+
+    section = lines[start:end]
+    key = problem_key(entry)
+    tag = entry.rsplit("#", 1)[1]
+    for line in section:
+        if line.strip() == entry.strip():
+            return "duplicate"
+        if key and f"#{tag}" in line and problem_key(line) == key:
+            return "duplicate"
+
+    # insert after the last non-empty line of the section (or right after heading)
+    insert_at = start
+    for i in range(start, end):
+        if lines[i].strip():
+            insert_at = i + 1
+    if insert_at == start and (start >= len(lines) or lines[start].strip() != ""):
+        lines.insert(start, "")
+        insert_at = start + 1
+    lines.insert(insert_at, entry)
+
+    note_path.parent.mkdir(parents=True, exist_ok=True)
+    note_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return "written"
+
+
+def cmd_log(args, cfg) -> None:
+    if args.category not in cfg["categories"]:
+        sys.exit(f"Unknown category '{args.category}'. "
+                 f"Available: {', '.join(cfg['categories'])}")
+    vault = resolve_vault(args, cfg)
+    date = resolve_date(args.date)
+    entry = build_entry(args, cfg)
+    note = daily_note_path(vault, cfg, date)
+    result = insert_entry(note, cfg, entry, vault, date)
+    pretty = entry.removeprefix("- ").rsplit(" #", 1)[0]
+    if result == "duplicate":
+        print(f"Already logged on {date.isoformat()}: {pretty}")
+    else:
+        print(f"Logged: {pretty} → {date.isoformat()}")
+
+
+def logged_lines(text: str, tags: list[str]) -> list[str]:
+    """Plain bullets or checked tasks carrying one of our tags."""
+    out = []
+    for line in text.splitlines():
+        s = line.strip()
+        if not s.startswith("- "):
+            continue
+        if s.startswith("- [ ]"):
+            continue  # unchecked placeholder
+        if any(f"#{t}" in s for t in tags):
+            out.append(s)
+    return out
+
+
+def cmd_streak(args, cfg) -> None:
+    vault = resolve_vault(args, cfg)
+    folder = vault / cfg["vault"]["daily_notes_folder"]
+    tags = {k: c["tag"] for k, c in cfg["categories"].items()}
+    names = {k: c["name"] for k, c in cfg["categories"].items()}
+    today = dt.date.today()
+    week_ago = today - dt.timedelta(days=6)
+
+    total = dict.fromkeys(tags, 0)
+    week = dict.fromkeys(tags, 0)
+    active: set[dt.date] = set()
+
+    for f in sorted(folder.glob("*.md")):
+        try:
+            day = dt.date.fromisoformat(f.stem)
+        except ValueError:
+            continue
+        text = f.read_text(encoding="utf-8")
+        for key, tag in tags.items():
+            n = len(logged_lines(text, [tag]))
+            if n:
+                total[key] += n
+                active.add(day)
+                if week_ago <= day <= today:
+                    week[key] += n
+
+    streak, d = 0, today if today in active else today - dt.timedelta(days=1)
+    while d in active:
+        streak += 1
+        d -= dt.timedelta(days=1)
+
+    print(f"\U0001f525 Streak: {streak} day{'s' if streak != 1 else ''} "
+          f"· active days total: {len(active)}")
+    width = max(len(n) for n in names.values())
+    print(f"{'Category'.ljust(width)}  7d  all")
+    for key in tags:
+        print(f"{names[key].ljust(width)}  {week[key]:>2}  {total[key]:>3}")
+
+
+def cmd_topics(_args, cfg) -> None:
+    for t in cfg["leetcode"]["topics"]:
+        print(t)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(prog="prepdojo", description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--vault", help="path to your Obsidian vault")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    p_log = sub.add_parser("log", help="log an entry into a daily note")
+    p_log.add_argument("category", help="lc, mlfund, mlcode, mlsys, or bq")
+    p_log.add_argument("text", help="what you did (for lc: problem, e.g. '#200 Number of Islands')")
+    p_log.add_argument("-d", "--difficulty", default="", help="lc only: Easy/Medium/Hard or E/M/H")
+    p_log.add_argument("-t", "--topic", default="", help="lc only: topic from the taxonomy")
+    p_log.add_argument("--note", default="", help="short note, shows in the dashboard Notes column")
+    p_log.add_argument("--conf", choices=list(CONFIDENCE), default="green",
+                       help="mlfund only: confidence (default green)")
+    p_log.add_argument("--date", default="today", help="today, yesterday, a weekday, or YYYY-MM-DD")
+    p_log.set_defaults(func=cmd_log)
+
+    p_streak = sub.add_parser("streak", help="print streak and per-category counts")
+    p_streak.set_defaults(func=cmd_streak)
+
+    p_topics = sub.add_parser("topics", help="list the LeetCode topic taxonomy")
+    p_topics.set_defaults(func=cmd_topics)
+
+    args = parser.parse_args()
+    args.func(args, load_config())
+
+
+if __name__ == "__main__":
+    main()

@@ -6,7 +6,7 @@ PrepDojo is a **daily-practice tracking system** built on [Obsidian](https://obs
 
 It ships as three coordinated layers, all generated from one config file:
 
-- **Capture** — instant logging from anywhere: QuickAdd hotkey actions with dropdown prompts inside Obsidian, or an AI logging skill (built for Claude, portable to any LLM agent) that turns "just did two sum" or a pasted LeetCode URL into a correctly formatted entry
+- **Capture** — instant logging from anywhere: QuickAdd hotkey actions with dropdown prompts inside Obsidian, an AI logging skill (built for Claude, portable to any LLM agent) that turns "just did two sum" or a pasted LeetCode URL into a correctly formatted entry, or a CLI (`prepdojo.py`) that makes logging scriptable from any terminal, hook, or automation
 - **Storage** — entries are plain markdown bullets in your daily notes: human-readable, grep-able, no database, no lock-in
 - **Insight** — a live Dataview dashboard computing streaks, per-topic and per-difficulty breakdowns, and a "needs re-review" list
 
@@ -26,6 +26,9 @@ flowchart LR
         subgraph cl ["chat with Claude"]
             CS["lc-logger skill<br/>paste a link or say 'log it'"]
         end
+        subgraph term ["terminal / scripts"]
+            CLI["prepdojo CLI<br/>hooks, userscripts, automation"]
+        end
     end
     subgraph storage ["📝 Storage (plain markdown)"]
         DN["Daily notes<br/><code>- LC #200 Number of Islands · Medium · bfs/dfs #lc</code>"]
@@ -36,6 +39,7 @@ flowchart LR
     QA --> DN
     CS --> DN
     MB --> DN
+    CLI --> DN
     DN --> DB
 ```
 
@@ -137,6 +141,17 @@ After any change, rerun `python3 generate.py --install /path/to/YourVault` (see 
 - In Obsidian: hotkey (default `Cmd/Ctrl+Shift+L` for LeetCode, `Cmd/Ctrl+Shift+M` for ML fundamentals) → pick day → answer prompts. The other three categories get QuickAdd choices too; assign hotkeys in `config.toml` or via Settings → Hotkeys.
 - With Claude: install `dist/claude-skill/lc-logger.skill`, connect your vault folder to the session, then paste a problem link or say "did 239 yesterday, solved with dp".
 - With other LLMs: the skill is plain markdown with every convention spelled out, so it doubles as a ready-made system prompt for any agent that can read and write files in your vault (a custom GPT, Cursor rules, a Gemini CLI context file, an `AGENTS.md`). Copy the contents of `dist/claude-skill/lc-logger/SKILL.md` into your agent's instructions; only the packaging and the clickable question dialog are Claude-specific, and the latter degrades gracefully to a plain-text question.
+- From a terminal or script: the CLI validates against your taxonomy and writes to the right daily note (Obsidian doesn't need to be running):
+
+  ```bash
+  export PREPDOJO_VAULT=/path/to/YourVault   # or set `path` under [vault] in config.toml
+  python3 prepdojo.py log lc "#200 Number of Islands" -d medium -t bfs/dfs
+  python3 prepdojo.py log lc "#322 Coin Change" -d M -t dp --note "needed hints" --date yesterday
+  python3 prepdojo.py log mlfund "batch norm" --conf yellow
+  python3 prepdojo.py streak      # streak + per-category counts, no Obsidian needed
+  ```
+
+  Because it's a single validated entry point, anything that can run a shell command becomes a capture surface: a Raycast/Alfred snippet, a git hook, a browser userscript on LeetCode's "Accepted" page.
 - By hand: type the bullet yourself. Unchecked checkboxes (`- [ ]`) are treated as placeholders and ignored by the dashboard; plain bullets and checked tasks count.
 
 ## Conventions worth knowing
@@ -165,6 +180,7 @@ and restart Obsidian. Three things to know:
 ```
 config.toml          all user configuration
 generate.py          renders templates + builds plugin configs from config.toml
+prepdojo.py          CLI: log entries and check streaks from any terminal or script
 templates/
   vault/             daily note template and dashboard (with placeholders)
   skill/             Claude skill (with placeholders)
