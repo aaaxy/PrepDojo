@@ -1,0 +1,254 @@
+#!/usr/bin/env python3
+"""Generate personalized tracker files from config.toml.
+
+Usage:
+    python3 generate.py                       # writes everything to dist/
+    python3 generate.py --install /path/vault # also copies files into a vault
+    python3 generate.py --install /path/vault --force  # overwrite existing
+
+Requires Python 3.11+ (uses the standard-library TOML parser). No third-party
+dependencies.
+"""
+
+import argparse
+import json
+import shutil
+import sys
+import uuid
+import zipfile
+from pathlib import Path
+
+try:
+    import tomllib
+except ModuleNotFoundError:
+    try:
+        import tomli as tomllib  # Python < 3.11 fallback
+    except ModuleNotFoundError:
+        sys.exit(
+            "Needs Python 3.11+ (built-in TOML support), or on older Pythons:\n"
+            "    pip install tomli"
+        )
+
+ROOT = Path(__file__).parent
+TEMPLATES = ROOT / "templates"
+DIST = ROOT / "dist"
+
+CATEGORY_KEYS = ["lc", "mlfund", "mlcode", "mlsys", "bq"]
+
+# One QuickAdd capture per category: (display name suffix, prompt format)
+CAPTURE_FORMATS = {
+    "lc": "- LC {{VALUE:Problem name (e.g. #200 Number of Islands)}} · {{VALUE:@DIFFS@}} · {{VALUE:@TOPICS@}} #@TAG@\n",
+    "mlfund": "- {{VALUE:Topic reviewed}} · {{VALUE:\U0001f7e2,\U0001f7e1,\U0001f534}} #@TAG@\n",
+    "mlcode": "- {{VALUE:What did you implement?}} #@TAG@\n",
+    "mlsys": "- {{VALUE:Design question or case}} #@TAG@\n",
+    "bq": "- {{VALUE:Story or question practiced}} #@TAG@\n",
+}
+
+
+def stable_id(key: str) -> str:
+    """Deterministic UUID per category so hotkeys.json always matches data.json."""
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"interview-prep-tracker/{key}"))
+
+
+def load_config() -> dict:
+    with open(ROOT / "config.toml", "rb") as f:
+        cfg = tomllib.load(f)
+    missing = [k for k in CATEGORY_KEYS if k not in cfg.get("categories", {})]
+    if missing:
+        sys.exit(f"config.toml is missing [categories.{missing[0]}]")
+    return cfg
+
+
+def replacements(cfg: dict) -> dict:
+    v, lc = cfg["vault"], cfg["leetcode"]
+    rep = {
+        "@@DAILY_NOTES_FOLDER@@": v["daily_notes_folder"],
+        "@@DATE_FORMAT@@": v["date_format"],
+        "@@DAILY_NOTE_TEMPLATE@@": v["daily_note_template"],
+        "@@DASHBOARD_PATH@@": v["dashboard_path"],
+        "@@PREP_HEADING@@": v["prep_heading"],
+        "@@TOPICS_CSV@@": ",".join(lc["topics"]),
+        "@@DIFFICULTIES_CSV@@": ",".join(lc["difficulties"]),
+        "@@DIFFICULTIES_PIPE@@": "|".join(lc["difficulties"]),
+        "@@TOPICS_INLINE@@": ", ".join(f"`{t}`" for t in lc["topics"]),
+    }
+    for key in CATEGORY_KEYS:
+        cat = cfg["categories"][key]
+        rep[f"@@TAG_{key.upper()}@@"] = cat["tag"]
+        rep[f"@@NAME_{key.upper()}@@"] = cat["name"]
+    return rep
+
+
+def render(text: str, rep: dict) -> str:
+    for k, val in rep.items():
+        text = text.replace(k, val)
+    leftovers = [line for line in text.splitlines() if "@@" in line]
+    if leftovers:
+        sys.exit(f"Unreplaced placeholder remains: {leftovers[0].strip()}")
+    return text
+
+
+def build_quickadd(cfg: dict) -> dict:
+    v, lc = cfg["vault"], cfg["leetcode"]
+    capture_to = (
+        f"{v['daily_notes_folder']}/"
+        f"{{{{VDATE:Which day?,{v['date_format']}|today}}}}.md"
+    )
+    choices = []
+    for key in CATEGORY_KEYS:
+        cat = cfg["categories"][key]
+        fmt = (
+            CAPTURE_FORMATS[key]
+            .replace("@DIFFS@", ",".join(lc["difficulties"]))
+            .replace("@TOPICS@", ",".join(lc["topics"]))
+            .replace("@TAG@", cat["tag"])
+        )
+        choices.append({
+            "id": stable_id(key),
+            "name": f"Log {cat['name']}",
+            "type": "Capture",
+            "command": True,
+            "appendLink": False,
+            "captureTo": capture_to,
+            "captureToActiveFile": False,
+            "captureToCanvasNodeId": "",
+            "activeFileWritePosition": "cursor",
+            "createFileIfItDoesntExist": {
+                "enabled": True,
+                "createWithTemplate": True,
+                "template": v["daily_note_template"],
+            },
+            "format": {"enabled": True, "format": fmt},
+            "insertAfter": {
+                "enabled": True,
+                "after": v["prep_heading"],
+                "insertAtEnd": False,
+                "considerSubsections": False,
+                "createIfNotFound": True,
+                "createIfNotFoundLocation": "top",
+                "inline": False,
+                "replaceExisting": False,
+                "blankLineAfterMatchMode": "auto",
+            },
+            "newLineCapture": {"enabled": False, "direction": "below"},
+            "prepend": False,
+            "task": False,
+            "openFile": False,
+            "fileOpening": {
+                "location": "tab", "direction": "vertical",
+                "mode": "default", "focus": True,
+            },
+            "templater": {"afterCapture": "none"},
+        })
+    return {
+        "choices": choices,
+        "inputPrompt": "single-line",
+        "persistInputPromptDrafts": True,
+        "useSelectionAsCaptureValue": True,
+        "devMode": False,
+        "templateFolderPath": "",
+        "announceUpdates": "major",
+        "globalVariables": {},
+        "onePageInputEnabled": False,
+        "disableOnlineFeatures": True,
+        "enableRibbonIcon": False,
+        "showCaptureNotification": True,
+        "showInputCancellationNotification": False,
+        "enableTemplatePropertyTypes": False,
+        "dateAliases": {
+            "t": "today", "tm": "tomorrow", "yd": "yesterday",
+            "nw": "next week", "nm": "next month", "ny": "next year",
+            "lw": "last week", "lm": "last month", "ly": "last year",
+        },
+    }
+
+
+def build_hotkeys(cfg: dict) -> dict:
+    out = {}
+    for key in CATEGORY_KEYS:
+        hotkey = cfg["categories"][key].get("hotkey")
+        if hotkey:
+            out[f"quickadd:choice:{stable_id(key)}"] = [
+                {"modifiers": hotkey["modifiers"], "key": hotkey["key"]}
+            ]
+    return out
+
+
+def write(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+    print(f"  wrote {path.relative_to(ROOT)}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--install", metavar="VAULT", help="copy generated vault files into this Obsidian vault")
+    parser.add_argument("--force", action="store_true", help="overwrite existing files when installing")
+    args = parser.parse_args()
+
+    cfg = load_config()
+    rep = replacements(cfg)
+    v = cfg["vault"]
+
+    if DIST.exists():
+        # Best-effort clean; every file below is (re)written anyway, this only
+        # clears leftovers from previous configs (e.g. renamed paths).
+        shutil.rmtree(DIST, ignore_errors=True)
+
+    print("Generating into dist/ ...")
+
+    # Vault-side markdown
+    daily_note = render((TEMPLATES / "vault" / "daily-note.md").read_text(encoding="utf-8"), rep)
+    dashboard = render((TEMPLATES / "vault" / "dashboard.md").read_text(encoding="utf-8"), rep)
+    write(DIST / "vault" / v["daily_note_template"], daily_note)
+    write(DIST / "vault" / v["dashboard_path"], dashboard)
+
+    # Obsidian config
+    write(DIST / "obsidian" / "daily-notes.json", json.dumps({
+        "folder": v["daily_notes_folder"],
+        "format": v["date_format"],
+        "template": v["daily_note_template"].removesuffix(".md"),
+    }, indent=2) + "\n")
+    write(DIST / "obsidian" / "plugins" / "quickadd" / "data.json",
+          json.dumps(build_quickadd(cfg), indent=2, ensure_ascii=False) + "\n")
+    write(DIST / "obsidian" / "hotkeys-snippet.json",
+          json.dumps(build_hotkeys(cfg), indent=2) + "\n")
+
+    # Claude skill
+    skill = render((TEMPLATES / "skill" / "SKILL.md").read_text(encoding="utf-8"), rep)
+    write(DIST / "claude-skill" / "lc-logger" / "SKILL.md", skill)
+    skill_pkg = DIST / "claude-skill" / "lc-logger.skill"
+    with zipfile.ZipFile(skill_pkg, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("lc-logger/SKILL.md", skill)
+    print(f"  wrote {skill_pkg.relative_to(ROOT)}")
+
+    if args.install:
+        vault = Path(args.install).expanduser()
+        if not vault.is_dir():
+            sys.exit(f"Not a directory: {vault}")
+        print(f"\nInstalling into {vault} ...")
+        pairs = [
+            (DIST / "vault" / v["daily_note_template"], vault / v["daily_note_template"]),
+            (DIST / "vault" / v["dashboard_path"], vault / v["dashboard_path"]),
+            (DIST / "obsidian" / "daily-notes.json", vault / ".obsidian" / "daily-notes.json"),
+            (DIST / "obsidian" / "plugins" / "quickadd" / "data.json",
+             vault / ".obsidian" / "plugins" / "quickadd" / "data.json"),
+        ]
+        for src, dst in pairs:
+            if dst.exists() and not args.force:
+                print(f"  SKIPPED (exists, use --force): {dst}")
+                continue
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src, dst)
+            print(f"  installed {dst}")
+        print(
+            "\nNot auto-installed: hotkeys. Merge dist/obsidian/hotkeys-snippet.json\n"
+            "into <vault>/.obsidian/hotkeys.json yourself (or assign hotkeys in\n"
+            "Settings → Hotkeys), so your existing hotkeys are never clobbered."
+        )
+
+    print("\nDone. See README.md for what to do with each file in dist/.")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,73 @@
+# ============================================================
+# interview-prep-tracker configuration
+# Edit this file, then run:  python3 generate.py
+# All generated files land in dist/ — copy them into your vault
+# (or run  python3 generate.py --install /path/to/your/vault)
+# ============================================================
+
+[vault]
+# Where daily notes live, relative to the vault root
+daily_notes_folder = "Calendar/Daily Notes"
+# Daily note filename format (moment.js syntax, used by Obsidian & QuickAdd)
+date_format = "YYYY-MM-DD"
+# Daily note template location, relative to the vault root
+daily_note_template = "Templates/Daily Note.md"
+# Where to put the generated dashboard note, relative to the vault root
+dashboard_path = "Interview Prep Dashboard.md"
+# The heading inside daily notes that entries are logged under
+prep_heading = "## Interview Prep"
+
+# ------------------------------------------------------------
+# Categories: tag = the inline tag that marks an entry (no '#')
+# name = how it appears on the dashboard
+# hotkey = QuickAdd hotkey (omit to leave unassigned)
+# Modifiers: Mod = Cmd on macOS / Ctrl on Windows-Linux, plus Shift, Alt, Ctrl
+# ------------------------------------------------------------
+
+[categories.lc]
+name = "LeetCode"
+tag = "lc"
+hotkey = { modifiers = ["Mod", "Shift"], key = "L" }
+
+[categories.mlfund]
+name = "ML Fundamentals"
+tag = "mlfund"
+hotkey = { modifiers = ["Mod", "Shift"], key = "M" }
+
+[categories.mlcode]
+name = "ML Coding"
+tag = "mlcode"
+
+[categories.mlsys]
+name = "ML System Design"
+tag = "mlsys"
+
+[categories.bq]
+name = "Behavioral"
+tag = "bq"
+
+# ------------------------------------------------------------
+# LeetCode specifics
+# ------------------------------------------------------------
+
+[leetcode]
+difficulties = ["Easy", "Medium", "Hard"]
+# Topic taxonomy. Keep these lowercase; finer divisions use "main - subtopic"
+# (e.g. "dp - knapsack") and the dashboard groups them under "dp".
+topics = [
+  "arrays & hashing",
+  "two pointers",
+  "sliding window",
+  "stack",
+  "binary search",
+  "linked list",
+  "trees",
+  "heap",
+  "backtracking",
+  "graphs",
+  "bfs/dfs",
+  "dp",
+  "greedy",
+  "intervals",
+  "bit manipulation",
+]
