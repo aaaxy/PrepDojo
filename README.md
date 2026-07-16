@@ -1,4 +1,6 @@
-# interview-prep-tracker
+# grindstone
+
+*Keep your interview prep sharp.*
 
 A low-friction system for tracking daily interview preparation in [Obsidian](https://obsidian.md): LeetCode problems, ML fundamentals, ML coding practice, system design, and behavioral prep. Log an entry in seconds with a hotkey, or by pasting a LeetCode link to Claude. A live dashboard aggregates everything: streaks, per-topic problem counts, difficulty breakdown, and a "needs re-review" list.
 

@@ -47,7 +47,7 @@ CAPTURE_FORMATS = {
 
 def stable_id(key: str) -> str:
     """Deterministic UUID per category so hotkeys.json always matches data.json."""
-    return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"interview-prep-tracker/{key}"))
+    return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"grindstone/{key}"))
 
 
 def load_config() -> dict:
