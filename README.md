@@ -2,7 +2,13 @@
 
 *Keep your interview prep sharp.*
 
-A low-friction system for tracking daily interview preparation in [Obsidian](https://obsidian.md): LeetCode problems, ML fundamentals, ML coding practice, system design, and behavioral prep. Log an entry in seconds with a hotkey, or by pasting a LeetCode link to Claude. A live dashboard aggregates everything: streaks, per-topic problem counts, difficulty breakdown, and a "needs re-review" list.
+grindstone is a **daily-practice tracking framework** built on [Obsidian](https://obsidian.md). It ships as three coordinated layers, all generated from one config file:
+
+- **Capture** — instant logging from anywhere: QuickAdd hotkey actions with dropdown prompts inside Obsidian, or an AI logging skill (Claude) that turns "just did two sum" or a pasted LeetCode URL into a correctly formatted entry
+- **Storage** — entries are plain markdown bullets in your daily notes: human-readable, grep-able, no database, no lock-in
+- **Insight** — a live Dataview dashboard computing streaks, per-topic and per-difficulty breakdowns, and a "needs re-review" list
+
+The default configuration tracks ML engineer interview prep (LeetCode, ML fundamentals, ML coding, system design, behavioral), but nothing is hardcoded: categories, tags, topic taxonomies, folder layout, hotkeys, and formats all live in `config.toml`, and `generate.py` rebuilds every layer — Obsidian configs, QuickAdd actions, dashboard, and the AI skill — to match. Rename the categories and the same machinery tracks language learning, fitness, or any daily practice.
 
 ## How it works
 
