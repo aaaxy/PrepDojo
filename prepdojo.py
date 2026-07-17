@@ -398,8 +398,14 @@ def cmd_apps_stats(args, cfg) -> None:
     week_ago = today - dt.timedelta(days=6)
 
     def applied_on(r):
+        v = (r.get("Applied Date") or "").strip()
+        # tolerate spreadsheet-app rewrites: 7/16/26 or 7/16/2026
+        m = re.fullmatch(r"(\d{1,2})/(\d{1,2})/(\d{2,4})", v)
+        if m:
+            y = int(m[3]) + (2000 if int(m[3]) < 100 else 0)
+            v = f"{y:04d}-{int(m[1]):02d}-{int(m[2]):02d}"
         try:
-            return dt.date.fromisoformat(r.get("Applied Date") or "")
+            return dt.date.fromisoformat(v)
         except ValueError:
             return None
 

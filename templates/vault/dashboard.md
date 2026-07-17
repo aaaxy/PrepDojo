@@ -90,8 +90,17 @@ function parseCSV(text) {
   return rows.map(r => Object.fromEntries(header.map((h, i) => [h, r[i] ?? ""])));
 }
 
+// tolerate spreadsheet-app date rewrites: "7/16/26" or "7/16/2026" → "2026-07-16"
+function normDate(v) {
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/.exec((v || "").trim());
+  if (!m) return (v || "").trim();
+  const y = m[3].length === 2 ? "20" + m[3] : m[3];
+  return `${y}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`;
+}
+
 async function render() {
   const apps = parseCSV(await app.vault.adapter.read(PATH));
+  for (const r of apps) r["Applied Date"] = normDate(r["Applied Date"]);
   dv.container.innerHTML = "";
   if (!apps.length) { dv.paragraph("*No applications logged yet.*"); return; }
   const now = dv.date("today");
