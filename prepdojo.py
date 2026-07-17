@@ -8,6 +8,9 @@ Examples:
     python3 prepdojo.py log bq "conflict with PM story"
     python3 prepdojo.py streak
     python3 prepdojo.py topics
+    python3 prepdojo.py apps log "Stripe" "ML Engineer, Risk" -r fraud-risk --status Applied
+    python3 prepdojo.py apps log "OpenAI" "Research Engineer" -r llm-agent --link https://... --date yesterday
+    python3 prepdojo.py apps stats
 
 The vault location is resolved in this order:
     1. --vault flag
@@ -289,6 +292,133 @@ def cmd_topics(_args, cfg) -> None:
         print(t)
 
 
+# --- job application tracking (CSV-based) ---------------------------------
+
+APP_STATUSES = ["Wishlist", "Applied", "OA", "Phone Screen", "Onsite",
+                "Team Match", "Offer", "Rejected", "Ghosted", "Withdrawn"]
+
+APP_HEADER = ["Company", "Position Title", "Req ID", "Job Link", "Location",
+              "Remote?", "Comp Range", "Applied Date", "Resume Version",
+              "Cover Letter", "Referral", "Status", "Stage History",
+              "Last Update", "Next Action", "Recruiter / Contact", "Notes"]
+
+
+def apps_folder(vault: Path, cfg: dict) -> Path:
+    rel = cfg.get("applications", {}).get("folder", "Career/Job Hunting/NG/Applications")
+    return vault / rel
+
+
+def read_applications(folder: Path) -> tuple[list[str], list[dict]]:
+    import csv
+    path = folder / "applications.csv"
+    if not path.exists():
+        return APP_HEADER, []
+    with open(path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        rows = [r for r in reader
+                if any((v or "").strip() for v in r.values())]
+        return list(reader.fieldnames or APP_HEADER), rows
+
+
+def validate_resume_version(raw: str, folder: Path) -> str:
+    """Check against resume-versions.csv when it exists; suggest close matches."""
+    import csv
+    path = folder / "resume-versions.csv"
+    if not raw or not path.exists():
+        return raw
+    with open(path, newline="", encoding="utf-8") as f:
+        ids = [r["Version ID"].strip() for r in csv.DictReader(f)
+               if (r.get("Version ID") or "").strip()]
+    if raw in ids:
+        return raw
+    close = difflib.get_close_matches(raw, ids, n=3, cutoff=0.4)
+    hint = f" Did you mean: {', '.join(close)}?" if close else ""
+    sys.exit(f"Unknown resume version '{raw}'.{hint}")
+
+
+def cmd_apps_log(args, cfg) -> None:
+    import csv
+    vault = resolve_vault(args, cfg)
+    folder = apps_folder(vault, cfg)
+    path = folder / "applications.csv"
+
+    status = next((s for s in APP_STATUSES if s.lower() == args.status.lower()), None)
+    if not status:
+        sys.exit(f"Unknown status '{args.status}'. One of: {', '.join(APP_STATUSES)}")
+    resume = validate_resume_version(args.resume, folder)
+    applied = resolve_date(args.date).isoformat() if status != "Wishlist" else ""
+    today = dt.date.today().isoformat()
+
+    header, existing = read_applications(folder)
+
+    # dedupe: same company + req id, or same company + title when no req id
+    for i, r in enumerate(existing, start=2):
+        same_co = (r.get("Company") or "").strip().lower() == args.company.strip().lower()
+        same_req = args.req_id and (r.get("Req ID") or "").strip().lower() == args.req_id.strip().lower()
+        same_title = not args.req_id and \
+            (r.get("Position Title") or "").strip().lower() == args.position.strip().lower()
+        if same_co and (same_req or same_title):
+            sys.exit(f"Already tracked (row {i}): {r.get('Company')} / "
+                     f"{r.get('Position Title')} — status: {r.get('Status')}")
+
+    row = {
+        "Company": args.company, "Position Title": args.position,
+        "Req ID": args.req_id, "Job Link": args.link, "Location": args.location,
+        "Remote?": args.remote, "Comp Range": args.comp,
+        "Applied Date": applied, "Resume Version": resume,
+        "Cover Letter": args.cover, "Referral": args.referral,
+        "Status": status, "Stage History": status, "Last Update": today,
+        "Next Action": args.next_action, "Recruiter / Contact": args.contact,
+        "Notes": args.note,
+    }
+
+    folder.mkdir(parents=True, exist_ok=True)
+    new_file = not path.exists()
+    if not new_file:  # repair a missing trailing newline before appending
+        raw = path.read_bytes()
+        if raw and not raw.endswith(b"\n"):
+            with open(path, "a", encoding="utf-8") as f:
+                f.write("\n")
+    with open(path, "a", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=header, lineterminator="\n")
+        if new_file:
+            w.writeheader()
+            print(f"Created {path}")
+        w.writerow({h: row.get(h, "") for h in header})
+    print(f"Logged: {args.company} — {args.position} ({status}"
+          + (f", {applied}" if applied else "") + ")")
+
+
+def cmd_apps_stats(args, cfg) -> None:
+    vault = resolve_vault(args, cfg)
+    _, rows = read_applications(apps_folder(vault, cfg))
+    if not rows:
+        sys.exit("No applications logged yet.")
+    today = dt.date.today()
+    week_ago = today - dt.timedelta(days=6)
+
+    def applied_on(r):
+        try:
+            return dt.date.fromisoformat(r.get("Applied Date") or "")
+        except ValueError:
+            return None
+
+    today_n = sum(1 for r in rows if applied_on(r) == today)
+    week_n = sum(1 for r in rows if (d := applied_on(r)) and week_ago <= d <= today)
+    interviewed = sum(1 for r in rows
+                      if re.search(r"Phone Screen|Onsite|Team Match|Offer",
+                                   r.get("Stage History") or "", re.I))
+    by_status: dict[str, int] = {}
+    for r in rows:
+        by_status[r.get("Status") or "—"] = by_status.get(r.get("Status") or "—", 0) + 1
+
+    print(f"\U0001f4e8 Today: {today_n} · last 7 days: {week_n} · total: {len(rows)}")
+    print(f"Interviewed (≥1 round): {interviewed} "
+          f"({100 * interviewed / len(rows):.1f}%)")
+    for s, n in sorted(by_status.items(), key=lambda kv: -kv[1]):
+        print(f"  {s}: {n}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="prepdojo", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -311,6 +441,30 @@ def main() -> None:
 
     p_topics = sub.add_parser("topics", help="list the LeetCode topic taxonomy")
     p_topics.set_defaults(func=cmd_topics)
+
+    p_apps = sub.add_parser("apps", help="job application tracking (CSV)")
+    apps_sub = p_apps.add_subparsers(dest="apps_command", required=True)
+
+    a_log = apps_sub.add_parser("log", help="log a job application")
+    a_log.add_argument("company")
+    a_log.add_argument("position")
+    a_log.add_argument("-r", "--resume", default="", help="resume version id (validated against resume-versions.csv)")
+    a_log.add_argument("--status", default="Applied", help="default Applied; use Wishlist if not yet submitted")
+    a_log.add_argument("--date", default="today", help="applied date: today, yesterday, a weekday, or YYYY-MM-DD")
+    a_log.add_argument("--req-id", default="", dest="req_id")
+    a_log.add_argument("--link", default="", help="job posting URL")
+    a_log.add_argument("--location", default="")
+    a_log.add_argument("--remote", default="", help="Remote / Hybrid / Onsite")
+    a_log.add_argument("--comp", default="", help="compensation range if posted")
+    a_log.add_argument("--cover", default="", help="cover letter version")
+    a_log.add_argument("--referral", default="")
+    a_log.add_argument("--next-action", default="", dest="next_action")
+    a_log.add_argument("--contact", default="", help="recruiter / contact")
+    a_log.add_argument("--note", default="")
+    a_log.set_defaults(func=cmd_apps_log)
+
+    a_stats = apps_sub.add_parser("stats", help="application counts and pipeline")
+    a_stats.set_defaults(func=cmd_apps_stats)
 
     args = parser.parse_args()
     args.func(args, load_config())

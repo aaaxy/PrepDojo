@@ -194,6 +194,16 @@ After any change, rerun `python3 generate.py --install /path/to/YourVault` (see 
   python3 prepdojo.py streak      # streak + per-category counts, no Obsidian needed
   ```
 
+  The CLI also covers job application tracking (optional; stores rows in CSV files that the dashboard's Job Applications section reads live — see `[applications]` in the config):
+
+  ```bash
+  python3 prepdojo.py apps log "Stripe" "ML Engineer, Risk" -r fraud-risk --status Applied
+  python3 prepdojo.py apps log "Acme" "MLE, Search" --status Wishlist
+  python3 prepdojo.py apps stats   # today / week / pipeline / interview rate
+  ```
+
+  Resume versions are validated against your catalog (typos get suggestions), duplicates are refused, and `Wishlist` rows get no applied date until you actually apply.
+
   Because it's a single validated entry point, anything that can run a shell command becomes a capture surface: a Raycast/Alfred snippet, a git hook, a browser userscript on LeetCode's "Accepted" page.
 - By hand: type the bullet yourself. Unchecked checkboxes (`- [ ]`) are treated as placeholders and ignored by the dashboard; plain bullets and checked tasks count.
 

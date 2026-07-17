@@ -78,3 +78,12 @@ topics = [
   "intervals",
   "bit manipulation",
 ]
+
+# ------------------------------------------------------------
+# Job application tracking (optional)
+# Folder inside the vault holding applications.csv and resume-versions.csv,
+# used by `prepdojo apps log` and `prepdojo apps stats`.
+# ------------------------------------------------------------
+
+[applications]
+folder = "Career/Job Hunting/NG/Applications"
