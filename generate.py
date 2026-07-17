@@ -10,6 +10,8 @@ Requires Python 3.11+ (uses the standard-library TOML parser). No third-party
 dependencies.
 """
 
+from __future__ import annotations
+
 import argparse
 import hashlib
 import json
@@ -26,7 +28,7 @@ except ModuleNotFoundError:
         import tomli as tomllib  # Python < 3.11 fallback
     except ModuleNotFoundError:
         sys.exit(
-            "Needs Python 3.11+ (built-in TOML support), or on older Pythons:\n"
+            "On Python older than 3.11 the TOML parser isn't built in. Install it:\n"
             "    pip install tomli"
         )
 

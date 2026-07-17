@@ -17,6 +17,8 @@ The vault location is resolved in this order:
 Writes plain markdown only; Obsidian does not need to be running.
 """
 
+from __future__ import annotations
+
 import argparse
 import datetime as dt
 import difflib
@@ -31,7 +33,7 @@ except ModuleNotFoundError:
     try:
         import tomli as tomllib  # Python < 3.11 fallback
     except ModuleNotFoundError:
-        sys.exit("Needs Python 3.11+, or on older Pythons: pip install tomli")
+        sys.exit("On Python older than 3.11, install the TOML parser: pip install tomli")
 
 ROOT = Path(__file__).parent
 

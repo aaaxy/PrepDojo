@@ -84,13 +84,28 @@ That's the entire data model. Three tools write and read these lines:
 
 ## Requirements
 
-- Obsidian with community plugins: [Calendar](https://obsidian.md/plugins?id=calendar), [Dataview](https://obsidian.md/plugins?id=dataview) (enable "JavaScript queries" in its settings), [QuickAdd](https://obsidian.md/plugins?id=quickadd)
-- Python 3.11+ to run the generator (or follow [manual setup](docs/manual-setup.md))
+- Obsidian, ideally **1.12+** (its built-in CLI lets Quick start install the plugins for you in one command; on older versions you install them by hand)
+- The community plugins [Calendar](https://obsidian.md/plugins?id=calendar), [Dataview](https://obsidian.md/plugins?id=dataview), and [QuickAdd](https://obsidian.md/plugins?id=quickadd) — Quick start below sets these up
+- Python 3.9+ to run the generator — on 3.11+ nothing extra is needed; on 3.9–3.10 the one-command `setup.py` installs the small `tomli` package for you (if you use `generate.py` directly instead, run `pip install tomli` first). No Python at all? See [manual setup](docs/manual-setup.md).
 - Optional: Claude desktop app (Cowork) or Claude Code for the logging skill
 
 ## Quick start
 
-The defaults work out of the box. You only need to tell PrepDojo where things live in your vault.
+The defaults work out of the box; you mostly just tell PrepDojo where your vault is. Two ways: one command, or the same steps by hand.
+
+### Fastest: one command
+
+```bash
+python3 setup.py /path/to/YourVault
+```
+
+This creates your `config.toml`, installs the vault files (dashboard, daily-note template, QuickAdd config), and — on **Obsidian 1.12+** with its CLI enabled — installs and enables the three plugins. It finishes by printing the few GUI-only steps that remain. If the `obsidian` command isn't available (older Obsidian, or the CLI not enabled yet), it does everything else and tells you how to add the plugins by hand.
+
+To get the automatic plugin install, two one-time things first: enable Obsidian's CLI (Settings → General → Command line interface → register it), and open your target vault in Obsidian at least once. The CLI installs plugins into whichever vault Obsidian has open, so `setup.py` checks that it matches your target and safely skips the plugin step (with instructions) if a different vault is open. Then finish the GUI-only bits the script lists at the end — enable Dataview's **JavaScript queries** and assign **QuickAdd hotkeys** — and you're done.
+
+### Or set it up step by step
+
+Want to see each part, already use QuickAdd, or on Obsidian older than 1.12? Do the same thing by hand:
 
 **1. Make your own config.** Copy the template to `config.toml` and edit that file (leaving `config-template.toml` untouched as a clean reference you can always fall back to):
 
@@ -108,7 +123,21 @@ Then check three settings in the `[vault]` section of `config.toml`:
 
 Already using daily notes? Set `daily_notes_folder` to your existing folder. New vault? Keep the defaults. Everything else in the file (tags, hotkeys, topics) has sensible defaults you can revisit later; see [Configuration](#configuration).
 
-**2. Generate and install:**
+**2. Install the three Obsidian plugins.** PrepDojo needs [Dataview](https://obsidian.md/plugins?id=dataview) (the dashboard engine), [QuickAdd](https://obsidian.md/plugins?id=quickadd) (hotkey logging), and [Calendar](https://obsidian.md/plugins?id=calendar) (click a date to open its note). On **Obsidian 1.12 or newer**, install all three from the terminal:
+
+```bash
+# one-time: in Obsidian, Settings → General → Command line interface → register it to your PATH
+obsidian plugins:restrict off
+obsidian plugin:install id=dataview enable
+obsidian plugin:install id=quickadd enable
+obsidian plugin:install id=calendar enable
+```
+
+What this changes in your vault, so there are no surprises: it turns **Restricted Mode off** (this is what allows community plugins to run their code — required for any of them to work) and both installs **and enables** the three plugins. One related setting is left for you to flip in step 4: Dataview's **JavaScript queries**.
+
+> **On Obsidian older than 1.12?** There's no CLI, so install the three plugins the usual way — Settings → Community plugins → Browse — or follow the [manual setup](docs/manual-setup.md) walkthrough, then carry on with the next step.
+
+**3. Generate and install.** Quit Obsidian first (step 2 opened it), so QuickAdd doesn't write its in-memory config back over the files this step installs:
 
 ```bash
 python3 generate.py --install /path/to/YourVault
@@ -116,9 +145,9 @@ python3 generate.py --install /path/to/YourVault
 
 Installs are edit-safe: files you've modified are never overwritten (the fresh version lands next to them as `*.new.md`; details in [Changing your configuration later](#changing-your-configuration-later)).
 
-**3. Restart Obsidian**, then two clicks of wiring: enable **JavaScript queries** in Dataview's settings, and assign hotkeys under Settings → Hotkeys → search "QuickAdd" (suggested: `Cmd/Ctrl+Shift+L` for LeetCode).
+**4. Restart Obsidian**, then two clicks of wiring: enable **JavaScript queries** in Dataview's settings, and assign hotkeys under Settings → Hotkeys → search "QuickAdd" (suggested: `Cmd/Ctrl+Shift+L` for LeetCode).
 
-**4. Try it.** Press the hotkey, log a problem for "today", and open the dashboard note in Reading view. You should see the entry in the tables and a one-day streak. (Before you log anything the dashboard is empty — blank tables are expected, not a broken setup; they fill in as you log.)
+**5. Try it.** Press the hotkey, log a problem for "today", and open the dashboard note in Reading view. You should see the entry in the tables and a one-day streak. (Before you log anything the dashboard is empty — blank tables are expected, not a broken setup; they fill in as you log.)
 
 <details>
 <summary>Installing by hand instead (or if you already use QuickAdd)</summary>
@@ -193,6 +222,7 @@ and restart Obsidian. Three things to know:
 
 ```
 config-template.toml tracked defaults; copy to config.toml (gitignored) and edit that
+setup.py             one-command first-time setup: config + install + plugin install
 generate.py          renders templates + builds plugin configs from config.toml
 prepdojo.py          CLI: log entries and check streaks from any terminal or script
 templates/
