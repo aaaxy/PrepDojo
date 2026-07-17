@@ -1,5 +1,8 @@
 # --- project ---
 dist/
+# personal config, created from config-template.toml on first run.
+# may hold an absolute vault path — never commit it.
+config.toml
 
 # --- Claude / AI assistants ---
 .claude/

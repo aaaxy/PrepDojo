@@ -2,6 +2,12 @@
 
 *Show up daily. Log in seconds. Leave sharper.*
 
+<!-- TODO (highest-impact addition): drop a screenshot of the rendered dashboard
+     here — the streak line and the by-topic/by-difficulty tables. Save it to
+     docs/dashboard.png and uncomment the line below.
+![PrepDojo dashboard](docs/dashboard.png)
+-->
+
 PrepDojo is a **daily-practice tracking system** built on [Obsidian](https://obsidian.md). One hotkey or a pasted LeetCode link is a complete log entry; one note is your whole picture, with streaks, topic and difficulty breakdowns, and a "needs re-review" list, always current.
 
 It ships as three coordinated layers, all generated from one config file:
@@ -11,6 +17,8 @@ It ships as three coordinated layers, all generated from one config file:
 - **Insight** — a live Dataview dashboard computing streaks, per-topic and per-difficulty breakdowns, and a "needs re-review" list
 
 The default configuration tracks ML engineer interview prep (LeetCode, ML fundamentals, ML coding, system design, behavioral), but nothing is hardcoded: categories, tags, topic taxonomies, folder layout, hotkeys, and formats all live in `config.toml`, and `generate.py` rebuilds every layer — Obsidian configs, QuickAdd actions, dashboard, and the AI skill — to match. Rename the categories and the same machinery tracks language learning, fitness, or any daily practice.
+
+> **New to Obsidian?** It's a free, local-first notes app that stores everything as plain markdown files on your own machine — no account, no cloud lock-in, and a rich plugin ecosystem. PrepDojo builds on that: your log is just text you own, and the live dashboard is powered by Obsidian's [Dataview](https://obsidian.md/plugins?id=dataview) plugin. If you don't use Obsidian yet, it's a 5-minute [install](https://obsidian.md) and worth it on its own.
 
 ## System overview
 
@@ -84,7 +92,13 @@ That's the entire data model. Three tools write and read these lines:
 
 The defaults work out of the box. You only need to tell PrepDojo where things live in your vault.
 
-**1. Check three settings** in the `[vault]` section of `config.toml`:
+**1. Make your own config.** Copy the template to `config.toml` and edit that file (leaving `config-template.toml` untouched as a clean reference you can always fall back to):
+
+```bash
+cp config-template.toml config.toml
+```
+
+Then check three settings in the `[vault]` section of `config.toml`:
 
 | Setting | What it is | Default |
 |---|---|---|
@@ -104,7 +118,7 @@ Installs are edit-safe: files you've modified are never overwritten (the fresh v
 
 **3. Restart Obsidian**, then two clicks of wiring: enable **JavaScript queries** in Dataview's settings, and assign hotkeys under Settings → Hotkeys → search "QuickAdd" (suggested: `Cmd/Ctrl+Shift+L` for LeetCode).
 
-**4. Try it.** Press the hotkey, log a problem for "today", and open the dashboard note in Reading view. You should see the entry in the tables and a one-day streak.
+**4. Try it.** Press the hotkey, log a problem for "today", and open the dashboard note in Reading view. You should see the entry in the tables and a one-day streak. (Before you log anything the dashboard is empty — blank tables are expected, not a broken setup; they fill in as you log.)
 
 <details>
 <summary>Installing by hand instead (or if you already use QuickAdd)</summary>
@@ -126,7 +140,7 @@ Run `python3 generate.py` without `--install`, then copy from `dist/`:
 
 ## Configuration
 
-All configuration lives in `config.toml`, grouped by how likely you are to touch it:
+All configuration lives in `config.toml` (your personal copy of `config-template.toml`), grouped by how likely you are to touch it:
 
 | Group | Settings | When you'd change it |
 |---|---|---|
@@ -178,14 +192,22 @@ and restart Obsidian. Three things to know:
 ## Repository layout
 
 ```
-config.toml          all user configuration
+config-template.toml tracked defaults; copy to config.toml (gitignored) and edit that
 generate.py          renders templates + builds plugin configs from config.toml
 prepdojo.py          CLI: log entries and check streaks from any terminal or script
 templates/
   vault/             daily note template and dashboard (with placeholders)
   skill/             Claude skill (with placeholders)
 docs/manual-setup.md fully manual, no-Python setup walkthrough
+.githooks/pre-commit blocks commits that contain a personal absolute path
 dist/                generated output (gitignored)
+config.toml          your personal config (gitignored, created from the template)
+```
+
+Working on prepdojo itself and committing changes? Enable the guard hook once so a stray local path can't slip into a commit:
+
+```bash
+git config core.hooksPath .githooks
 ```
 
 ## License

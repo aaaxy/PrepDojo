@@ -52,7 +52,17 @@ def stable_id(key: str) -> str:
 
 
 def load_config() -> dict:
-    with open(ROOT / "config.toml", "rb") as f:
+    cfg_path = ROOT / "config.toml"
+    template = ROOT / "config-template.toml"
+    if not cfg_path.exists():
+        if not template.exists():
+            sys.exit("No config found. Expected config.toml or config-template.toml "
+                     "next to generate.py.")
+        # First run: bootstrap a personal, gitignored config from the template.
+        shutil.copyfile(template, cfg_path)
+        print("Created config.toml from config-template.toml — edit it to customize, "
+              "then rerun.")
+    with open(cfg_path, "rb") as f:
         cfg = tomllib.load(f)
     missing = [k for k in CATEGORY_KEYS if k not in cfg.get("categories", {})]
     if missing:

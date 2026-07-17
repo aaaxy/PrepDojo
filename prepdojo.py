@@ -41,7 +41,16 @@ WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", 
 
 
 def load_config() -> dict:
-    with open(ROOT / "config.toml", "rb") as f:
+    cfg_path = ROOT / "config.toml"
+    template = ROOT / "config-template.toml"
+    if not cfg_path.exists():
+        if not template.exists():
+            sys.exit("No config found. Expected config.toml or config-template.toml "
+                     "next to prepdojo.py.")
+        # First run: bootstrap a personal, gitignored config from the template.
+        cfg_path.write_bytes(template.read_bytes())
+        print("Created config.toml from config-template.toml — edit it to customize.")
+    with open(cfg_path, "rb") as f:
         return tomllib.load(f)
 
 

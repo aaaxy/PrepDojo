@@ -1,6 +1,13 @@
 # ============================================================
-# prepdojo configuration
-# Edit this file, then run:  python3 generate.py
+# prepdojo configuration TEMPLATE
+#
+# Copy this file to config.toml and edit that — keep this template as a
+# clean reference to fall back to:
+#     cp config-template.toml config.toml
+# (generate.py / prepdojo.py also create config.toml from this file on first
+# run if it's missing.)
+#
+# Then run:  python3 generate.py
 # All generated files land in dist/ — copy them into your vault
 # (or run  python3 generate.py --install /path/to/your/vault)
 # ============================================================
