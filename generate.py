@@ -38,6 +38,15 @@ DIST = ROOT / "dist"
 
 CATEGORY_KEYS = ["lc", "mlfund", "mlcode", "mlsys", "bq"]
 
+# Starter headers for the job-application CSVs (kept in sync with prepdojo.py
+# and the dashboard's Job Applications section).
+APPLICATIONS_HEADER = ("Company,Position Title,Req ID,Job Link,Location,Remote?,"
+                       "Comp Range,Applied Date,Resume Version,Cover Letter,Referral,"
+                       "Status,Stage History,Last Update,Next Action,"
+                       "Recruiter / Contact,Notes\n")
+RESUME_VERSIONS_HEADER = ("Version ID,Short Description,Emphasis / Angle,"
+                          "Target Role Type,File Path,Date Last Updated,Notes\n")
+
 # One QuickAdd capture per category: (display name suffix, prompt format)
 CAPTURE_FORMATS = {
     "lc": "- LC {{VALUE:Problem name (e.g. #200 Number of Islands)}} · {{VALUE:@DIFFS@}} · {{VALUE:@TOPICS@}} #@TAG@\n",
@@ -84,6 +93,8 @@ def replacements(cfg: dict) -> dict:
         "@@DIFFICULTIES_CSV@@": ",".join(lc["difficulties"]),
         "@@DIFFICULTIES_PIPE@@": "|".join(lc["difficulties"]),
         "@@TOPICS_INLINE@@": ", ".join(f"`{t}`" for t in lc["topics"]),
+        "@@APPLICATIONS_FOLDER@@": cfg.get("applications", {}).get(
+            "folder", "Career/Job Hunting/NG/Applications"),
     }
     for key in CATEGORY_KEYS:
         cat = cfg["categories"][key]
@@ -216,6 +227,11 @@ def main() -> None:
     write(DIST / "vault" / v["daily_note_template"], daily_note)
     write(DIST / "vault" / v["dashboard_path"], dashboard)
 
+    # Starter job-application CSVs (headers only; real data never lives in dist)
+    apps_folder = rep["@@APPLICATIONS_FOLDER@@"]
+    write(DIST / "vault" / apps_folder / "applications.csv", APPLICATIONS_HEADER)
+    write(DIST / "vault" / apps_folder / "resume-versions.csv", RESUME_VERSIONS_HEADER)
+
     # Obsidian config
     write(DIST / "obsidian" / "daily-notes.json", json.dumps({
         "folder": v["daily_notes_folder"],
@@ -284,6 +300,18 @@ def main() -> None:
             shutil.copyfile(src, dst)
             manifest[key] = src_sum
             print(f"  installed {dst}")
+
+        # Data files: create only if absent, never overwrite, never .new —
+        # these hold the user's records, not generated content.
+        for name in ("applications.csv", "resume-versions.csv"):
+            src = DIST / "vault" / apps_folder / name
+            dst = vault / apps_folder / name
+            if dst.exists():
+                print(f"  kept (data file): {dst}")
+                continue
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src, dst)
+            print(f"  installed (empty starter): {dst}")
 
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")

@@ -58,6 +58,118 @@ rows.sort((a, b) => b.day.localeCompare(a.day));
 dv.table(["Date", "Entry"], rows.map(r => [r.link, r.text]));
 ```
 
+## Job Applications
+
+> Source: `@@APPLICATIONS_FOLDER@@/applications.csv` (+ `resume-versions.csv`). Log there via `prepdojo apps log`, a CSV editor plugin, or any spreadsheet app; this section re-reads the file and updates live while the note is open.
+
+```dataviewjs
+// Self-refreshing: reads the CSV uncached (dv.io.csv caches and misses
+// external edits), then polls the file's mtime while this note is open
+// and re-renders whenever it changes.
+const PATH = "@@APPLICATIONS_FOLDER@@/applications.csv";
+
+function parseCSV(text) {
+  const rows = []; let row = [], cell = "", inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else cell += c;
+    } else if (c === '"') inQ = true;
+    else if (c === ",") { row.push(cell); cell = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      row.push(cell); cell = "";
+      if (row.some(x => x !== "")) rows.push(row);
+      row = [];
+    } else cell += c;
+  }
+  if (cell !== "" || row.length) { row.push(cell); if (row.some(x => x !== "")) rows.push(row); }
+  const header = rows.shift() ?? [];
+  return rows.map(r => Object.fromEntries(header.map((h, i) => [h, r[i] ?? ""])));
+}
+
+async function render() {
+  const apps = parseCSV(await app.vault.adapter.read(PATH));
+  dv.container.innerHTML = "";
+  if (!apps.length) { dv.paragraph("*No applications logged yet.*"); return; }
+  const now = dv.date("today");
+  const weekAgo = now.minus({ days: 6 });
+  const interviewed = r => /Phone Screen|Onsite|Team Match|Offer/i.test(r["Stage History"] || "");
+
+  // headline: velocity
+  const dated = apps.filter(r => r["Applied Date"]);
+  const perDay = {};
+  for (const r of dated) perDay[r["Applied Date"]] = (perDay[r["Applied Date"]] ?? 0) + 1;
+  const todayN = perDay[now.toFormat("yyyy-MM-dd")] ?? 0;
+  const weekN = dated.filter(r => {
+    const d = dv.date(r["Applied Date"]);
+    return d && d >= weekAgo && d <= now;
+  }).length;
+  dv.paragraph(`**📨 Today: ${todayN}** · last 7 days: ${weekN} · total: ${apps.length}`);
+
+  // pipeline: count by current status
+  const byStatus = {};
+  for (const r of apps) byStatus[r["Status"] || "—"] = (byStatus[r["Status"] || "—"] ?? 0) + 1;
+  const active = ["Applied", "OA", "Phone Screen", "Onsite", "Team Match"]
+    .reduce((s, k) => s + (byStatus[k] ?? 0), 0);
+  dv.header(3, "Pipeline");
+  dv.paragraph(`Active (in pipeline): **${active}**`);
+  dv.table(["Status", "Count"],
+    Object.entries(byStatus).sort((a, b) => b[1] - a[1]));
+
+  // milestones ever reached (from stage history)
+  const ever = s => apps.filter(r => (r["Stage History"] || "").toLowerCase()
+    .includes(s.toLowerCase())).length;
+  const nInt = apps.filter(interviewed).length;
+  dv.header(3, "Responses");
+  dv.table(["Milestone", "Count", "Rate"], [
+    ["Ever Phone Screen", ever("Phone Screen"), ""],
+    ["Ever Onsite", ever("Onsite"), ""],
+    ["Ever Offer", ever("Offer"), ""],
+    ["Ever interviewed (≥1 round)", nInt, (100 * nInt / apps.length).toFixed(1) + "%"],
+    ["Rejected", byStatus["Rejected"] ?? 0, ""],
+  ]);
+
+  // by resume version: usage + interview rate
+  const byVer = {};
+  for (const r of apps) {
+    const v = r["Resume Version"] || "—";
+    (byVer[v] ??= { n: 0, int: 0 });
+    byVer[v].n++;
+    if (interviewed(r)) byVer[v].int++;
+  }
+  dv.header(3, "By resume version");
+  dv.table(["Version", "Apps", "Interviewed", "Rate"],
+    Object.entries(byVer)
+      .sort((a, b) => b[1].n - a[1].n)
+      .filter(([, s]) => s.n >= 2)
+      .map(([v, s]) => [v, s.n, s.int, s.n ? (100 * s.int / s.n).toFixed(0) + "%" : "—"]));
+  dv.paragraph("*Versions with a single application are hidden; rates on small counts mean little.*");
+
+  // last 14 days
+  dv.header(3, "Last 14 days");
+  const days = [];
+  for (let i = 0; i < 14; i++) {
+    const d = now.minus({ days: i }).toFormat("yyyy-MM-dd");
+    if (perDay[d]) days.push([d, perDay[d]]);
+  }
+  dv.table(["Date", "Applications"], days);
+}
+
+let lastMtime = 0;
+async function tick() {
+  const s = await app.vault.adapter.stat(PATH);
+  if (s && s.mtime !== lastMtime) { lastMtime = s.mtime; await render(); }
+}
+await tick();
+const pollId = window.setInterval(async () => {
+  if (!dv.container.isConnected) { window.clearInterval(pollId); return; }
+  try { await tick(); } catch (e) { /* file mid-write; retry next tick */ }
+}, 3000);
+```
+
 ## @@NAME_LC@@
 
 ```dataviewjs
