@@ -140,19 +140,19 @@ What this changes in your vault, so there are no surprises: it turns **Restricte
 **3. Generate and install.** Quit Obsidian first (step 2 opened it), so QuickAdd doesn't write its in-memory config back over the files this step installs:
 
 ```bash
-python3 generate.py --install /path/to/YourVault
+python3 generate.py
 ```
 
-Installs are edit-safe: files you've modified are never overwritten (the fresh version lands next to them as `*.new.md`; details in [Changing your configuration later](#changing-your-configuration-later)).
+The first run creates your personal `config.toml` from the template; set `path` under `[vault]` in it to your vault's location, then rerun — it builds everything and installs it into the vault in one step (or pass `--install /path/to/YourVault` to override). Installs are edit-safe: files you've modified are never overwritten (the fresh version lands next to them as `*.new.md`; details in [Changing your configuration later](#changing-your-configuration-later)), and your data — daily notes, application CSVs — is never touched.
 
 **4. Restart Obsidian**, then two clicks of wiring: enable **JavaScript queries** in Dataview's settings, and assign hotkeys under Settings → Hotkeys → search "QuickAdd" (suggested: `Cmd/Ctrl+Shift+L` for LeetCode).
 
 **5. Try it.** Press the hotkey, log a problem for "today", and open the dashboard note in Reading view. You should see the entry in the tables and a one-day streak. (Before you log anything the dashboard is empty — blank tables are expected, not a broken setup; they fill in as you log.)
 
 <details>
-<summary>Installing by hand instead (or if you already use QuickAdd)</summary>
+<summary>Installing by hand (Python older than 3.11 without tomli, or if you already use QuickAdd)</summary>
 
-Run `python3 generate.py` without `--install`, then copy from `dist/`:
+Run `python3 generate.py --no-install` (builds `dist/` without touching the vault), then copy from `dist/`:
 
 | File in `dist/` | Where it goes |
 |---|---|

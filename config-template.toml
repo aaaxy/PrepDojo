@@ -13,14 +13,21 @@
 # ============================================================
 
 [vault]
+# Absolute path to your Obsidian vault.
+path = "/absolute/path/to/YourVault"
+
 # Where daily notes live, relative to the vault root
 daily_notes_folder = "Calendar/Daily Notes"
+
 # Daily note filename format (moment.js syntax, used by Obsidian & QuickAdd)
 date_format = "YYYY-MM-DD"
+
 # Daily note template location, relative to the vault root
 daily_note_template = "Templates/Daily Note.md"
+
 # Where to put the generated dashboard note, relative to the vault root
 dashboard_path = "Interview Prep Dashboard.md"
+
 # The heading inside daily notes that entries are logged under
 prep_heading = "## Interview Prep"
 
@@ -86,4 +93,4 @@ topics = [
 # ------------------------------------------------------------
 
 [applications]
-folder = "Career/Job Hunting/NG/Applications"
+folder = "Applications"

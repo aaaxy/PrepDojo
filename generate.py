@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
-"""Generate personalized tracker files from config.toml.
+"""Generate personalized tracker files from config.toml and install them.
 
 Usage:
-    python3 generate.py                       # writes everything to dist/
-    python3 generate.py --install /path/vault # also copies files into a vault
-    python3 generate.py --install /path/vault --force  # overwrite existing
+    python3 generate.py                # build dist/ and install into the vault
+    python3 generate.py --no-install   # build dist/ only
+    python3 generate.py --force        # install, overwriting even edited files
+
+The install target is resolved in this order:
+    1. --install /path/to/vault
+    2. PREPDOJO_VAULT environment variable
+    3. `path` under [vault] in config.toml
+If none is set, only dist/ is built (with a hint on how to enable install).
 
 Requires Python 3.11+ (uses the standard-library TOML parser). No third-party
 dependencies.
@@ -15,6 +21,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import sys
 import uuid
@@ -206,7 +213,10 @@ def write(path: Path, content: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--install", metavar="VAULT", help="copy generated vault files into this Obsidian vault")
+    parser.add_argument("--install", metavar="VAULT",
+                        help="vault to install into (overrides PREPDOJO_VAULT and config)")
+    parser.add_argument("--no-install", action="store_true",
+                        help="build dist/ only, skip installing")
     parser.add_argument("--force", action="store_true", help="overwrite existing files when installing")
     args = parser.parse_args()
 
@@ -251,10 +261,20 @@ def main() -> None:
         z.writestr("lc-logger/SKILL.md", skill)
     print(f"  wrote {skill_pkg.relative_to(ROOT)}")
 
-    if args.install:
-        vault = Path(args.install).expanduser()
+    # Install by default; the target comes from the flag, the env var, or config.
+    target = None if args.no_install else (
+        args.install or os.environ.get("PREPDOJO_VAULT") or cfg["vault"].get("path"))
+    if target is None and not args.no_install:
+        print(
+            "\nBuilt dist/ only — no vault to install into. To install automatically,\n"
+            "set `path` under [vault] in config.toml (or pass --install /path/to/vault).\n"
+            "To install by hand instead, see the copy table in README.md."
+        )
+    if target:
+        vault = Path(target).expanduser()
         if not vault.is_dir():
-            sys.exit(f"Not a directory: {vault}")
+            sys.exit(f"Vault directory not found: {vault}\n"
+                     "(check `path` under [vault] in config.toml, or pass --install)")
         print(f"\nInstalling into {vault} ...")
 
         # Manifest of checksums from previous installs. A target file is only
