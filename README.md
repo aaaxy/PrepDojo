@@ -37,7 +37,8 @@ Everything stays in plain files on your own computer — no account, no subscrip
 <!-- TODO screenshot: the "By resume version" table with rates.
      Save as docs/media/resume-rates.png -->
 
-The default configuration tracks ML engineer interview prep (LeetCode, ML fundamentals, ML coding, system design, behavioral), but nothing is hardcoded: categories, tags, topic taxonomies, folder layout, hotkeys, and formats all live in `config.toml`, and `generate.py` rebuilds every layer — Obsidian configs, QuickAdd actions, dashboard, and the AI skill — to match. Rename the categories and the same machinery tracks language learning, fitness, or any daily practice.
+> [!TIP]
+> **Not just interview prep.** The default setup tracks ML engineer interview prep (LeetCode, ML fundamentals, ML coding, system design, behavioral), but nothing is hardcoded — categories, tags, topics, folders, and hotkeys all live in `config.toml`, and everything is rebuilt from it. Rename the categories and the same machinery tracks language learning, fitness, or any daily practice.
 
 
 ## Requirements
