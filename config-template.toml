@@ -1,20 +1,18 @@
 # ============================================================
 # prepdojo configuration TEMPLATE
 #
-# Copy this file to config.toml and edit that — keep this template as a
-# clean reference to fall back to:
-#     cp config-template.toml config.toml
-# (generate.py / prepdojo.py also create config.toml from this file on first
-# run if it's missing.)
+# First-time setup? Run  python3 setup.py  — it creates config.toml from this
+# template, walks you through filling in your vault path, installs everything,
+# and sets up the Obsidian plugins.
 #
-# Then run:  python3 generate.py
-# All generated files land in dist/ — copy them into your vault
-# (or run  python3 generate.py --install /path/to/your/vault)
+# To customize later: edit config.toml (your personal copy; this template
+# stays untouched as a clean reference), then redeploy with
+#     python3 generate.py
 # ============================================================
 
 [vault]
 # Absolute path to your Obsidian vault.
-path = "/absolute/path/to/YourVault"
+# path = "/absolute/path/to/YourVault"
 
 # Where daily notes live, relative to the vault root
 daily_notes_folder = "Calendar/Daily Notes"

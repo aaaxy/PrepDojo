@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Generate personalized tracker files from config.toml and install them.
 
+First-time setup? Use setup.py instead — it wraps this script and also
+creates your config and installs the Obsidian plugins. generate.py is the
+day-to-day tool for redeploying after config or template changes.
+
 Usage:
     python3 generate.py                # build dist/ and install into the vault
     python3 generate.py --no-install   # build dist/ only

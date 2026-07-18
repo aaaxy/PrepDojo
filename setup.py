@@ -12,9 +12,12 @@ Dataview's JavaScript queries, assigning hotkeys). This script does everything
 else and prints exactly what's left at the end.
 
 Usage:
+    python3 setup.py
+        First run: creates config.toml and tells you to put your vault path in
+        it (edit the file in any text editor). Second run: installs everything.
     python3 setup.py /path/to/YourVault
-    python3 setup.py                      # prompts for the vault path (or uses
-                                          # the PREPDOJO_VAULT env var)
+        One-shot alternative: pass the vault path directly; it is recorded in
+        config.toml for you. (PREPDOJO_VAULT env var works too.)
 
 Requires Python 3.9+. On 3.9/3.10 it installs the `tomli` package for you;
 on 3.11+ nothing extra is needed. Runs on macOS, Linux, and Windows.
@@ -38,34 +41,121 @@ def step(n: int, total: int, msg: str) -> None:
     print(f"\n[{n}/{total}] {msg}")
 
 
-def ensure_config() -> None:
+def ensure_config() -> bool:
+    """Create config.toml from the template if missing. Returns True if created."""
     cfg = ROOT / "config.toml"
     template = ROOT / "config-template.toml"
     if cfg.exists():
         print("  config.toml already exists — leaving your settings untouched")
-        return
+        return False
     if not template.exists():
         sys.exit("  config-template.toml is missing; cannot create config.toml")
     cfg.write_bytes(template.read_bytes())
-    print("  created config.toml from config-template.toml (using default paths)")
-    print("  if you already keep daily notes in a specific folder, edit")
-    print("  config.toml's [vault] section and rerun this script")
+    print("  created config.toml from config-template.toml")
+    return True
 
 
-def resolve_vault() -> str:
+def config_vault_path() -> Optional[str]:
+    """Read the vault path from config.toml, ignoring the template placeholder."""
+    cfg = ROOT / "config.toml"
+    if not cfg.exists():
+        return None
+    for line in cfg.read_text(encoding="utf-8").splitlines():
+        s = line.strip()
+        if (s.startswith("path ") or s.startswith("path=")) and "=" in s:
+            val = s.split("=", 1)[1].strip().strip('"').strip("'")
+            if val and "/absolute/path/to/YourVault" not in val:
+                return val
+    return None
+
+
+EDIT_INSTRUCTIONS = (
+    '  In the [vault] section, find:   # path = "/absolute/path/to/YourVault"\n'
+    '  Remove the leading "# " and put your vault\'s location between the\n'
+    '  quotes, e.g.:   path = "~/Documents/MyVault"\n'
+    "  (Tip: drag the vault folder into the editor line, or right-click the\n"
+    "  folder → hold Option (macOS) → 'Copy as Pathname'.)\n"
+    "  While you're in there: if you already keep daily notes in a specific\n"
+    "  folder, set daily_notes_folder in the same section."
+)
+
+
+def open_in_editor(path: Path) -> bool:
+    """Best-effort: open the file with the system default app."""
+    try:
+        if sys.platform == "darwin":
+            subprocess.run(["open", str(path)], check=False)
+        elif os.name == "nt":
+            os.startfile(str(path))  # type: ignore[attr-defined]
+        else:
+            subprocess.run(["xdg-open", str(path)], check=False,
+                           stderr=subprocess.DEVNULL)
+        return True
+    except Exception:
+        return False
+
+
+def resolve_vault(just_created: bool) -> str:
     if len(sys.argv) > 1:
         return sys.argv[1]
     env = os.environ.get("PREPDOJO_VAULT")
     if env:
         print(f"  using PREPDOJO_VAULT: {env}")
         return env
-    try:
-        answer = input("  Path to your Obsidian vault: ").strip()
-    except EOFError:
-        answer = ""
-    if not answer:
-        sys.exit("  No vault path given. Rerun as: python3 setup.py /path/to/YourVault")
-    return answer
+    from_config = config_vault_path()
+    if from_config:
+        print(f"  using vault path from config.toml: {from_config}")
+        return from_config
+
+    # No path yet: open the config in the user's editor and wait, so setup
+    # completes in this single run.
+    cfg = ROOT / "config.toml"
+    print("\nOne thing to fill in — your vault's location.")
+    opened = open_in_editor(cfg)
+    print(f"  {'Opening' if opened else 'Open'}  {cfg}  {'in your editor...' if opened else 'in any text editor.'}")
+    print(EDIT_INSTRUCTIONS)
+    while True:
+        try:
+            answer = input("\nSave the file, then press Enter to continue (or q to quit): ")
+        except EOFError:
+            # Non-interactive (CI, piped): fall back to the two-run flow.
+            print("\nNo interactive terminal. Fill in the path as described above,")
+            print("then run  python3 setup.py  again.")
+            sys.exit(0)
+        if answer.strip().lower() == "q":
+            print("Stopped. Rerun  python3 setup.py  once the path is filled in.")
+            sys.exit(0)
+        from_config = config_vault_path()
+        if from_config:
+            print(f"  got it: {from_config}")
+            return from_config
+        print("  config.toml still has no vault path — check the [vault] section,")
+        print('  make sure the line starts with  path = "  (no leading #), and save.')
+
+
+def write_vault_path(vault: str) -> None:
+    """Record the vault path in config.toml so every later command — bare
+    generate.py deploys, prepdojo.py logging — works without flags. Respects a
+    path the user already set; only fills the commented-out placeholder."""
+    cfg = ROOT / "config.toml"
+    text = cfg.read_text(encoding="utf-8")
+    for line in text.splitlines():
+        stripped = line.strip()
+        if (stripped.startswith("path ") or stripped.startswith("path=")) \
+                and "/absolute/path/to/YourVault" not in stripped:
+            print("  config.toml already sets a vault path — leaving it as is")
+            return
+    # replace an uncommented placeholder line, if present, so it can't linger
+    text = text.replace('path = "/absolute/path/to/YourVault"\n', "", 1)
+    resolved = Path(vault).expanduser().resolve()
+    path_line = f'path = "{resolved}"'
+    placeholder = '# path = "/absolute/path/to/YourVault"'
+    if placeholder in text:
+        text = text.replace(placeholder, path_line, 1)
+    else:
+        text = text.replace("[vault]", f"[vault]\n{path_line}", 1)
+    cfg.write_text(text, encoding="utf-8")
+    print(f"  recorded vault path in config.toml: {resolved}")
 
 
 def ensure_tomli() -> None:
@@ -176,12 +266,13 @@ def main() -> None:
         "tells you how to finish."
     )
 
-    vault = resolve_vault()
-    if not Path(vault).expanduser().is_dir():
-        sys.exit(f"Not a directory: {vault}")
-
     step(1, 3, "Creating your config")
-    ensure_config()
+    created = ensure_config()
+    vault = resolve_vault(created)
+    if not Path(vault).expanduser().is_dir():
+        sys.exit(f"Not a directory: {vault}\n"
+                 "(check the path in config.toml's [vault] section)")
+    write_vault_path(vault)
 
     step(2, 3, "Generating and installing vault files")
     ensure_tomli()
