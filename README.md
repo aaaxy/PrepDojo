@@ -45,8 +45,8 @@ Everything stays in plain files on your own computer — no account, no subscrip
 
 Two things on your machine, and you're ready:
 
-- **Obsidian** — on 1.12+, setup also installs the three community plugins PrepDojo runs on ([Dataview](https://obsidian.md/plugins?id=dataview), [QuickAdd](https://obsidian.md/plugins?id=quickadd), [Calendar](https://obsidian.md/plugins?id=calendar)). Older versions work too; you add those three yourself in a few clicks ([how](#obsidian-older-than-112)).
-- **Python 3.9+** to run setup — on 3.11+ nothing extra is needed; on 3.9–3.10 setup installs the small `tomli` package for you. No Python at all? See [manual setup](docs/manual-setup.md).
+- **Obsidian** — ideally 1.12+, so setup can auto-install the three community plugins PrepDojo runs on ([Dataview](https://obsidian.md/plugins?id=dataview), [QuickAdd](https://obsidian.md/plugins?id=quickadd), [Calendar](https://obsidian.md/plugins?id=calendar)). Older versions work too; you add those three yourself in a few clicks ([how](#obsidian-older-than-112)).
+- **Python 3.9+** for the one-command setup. No Python at all? See [manual setup](docs/manual-setup.md).
 
 Optional: the Claude desktop app (Cowork) or Claude Code, if you want AI logging.
 
