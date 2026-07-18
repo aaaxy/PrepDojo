@@ -179,9 +179,7 @@ async function render() {
   dv.table(["Version", "Apps", "Interviewed", "Rate"],
     Object.entries(byVer)
       .sort((a, b) => b[1].n - a[1].n)
-      .filter(([, s]) => s.n >= 2)
       .map(([v, s]) => [v, s.n, s.int, s.n ? (100 * s.int / s.n).toFixed(0) + "%" : "—"]));
-  dv.paragraph("*Versions with a single application are hidden; rates on small counts mean little.*");
 
   // last 14 days
   dv.header(3, "Last 14 days");
