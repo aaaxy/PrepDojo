@@ -2,106 +2,76 @@
 
 *Show up daily. Log in seconds. Leave sharper.*
 
-<!-- TODO (highest-impact addition): drop a screenshot of the rendered dashboard
-     here — the streak line and the by-topic/by-difficulty tables. Save it to
-     docs/dashboard.png and uncomment the line below.
-![PrepDojo dashboard](docs/dashboard.png)
+<!-- TODO hero image: the single strongest asset goes here, above the fold.
+     Best candidate: a short GIF of the full loop — hotkey → prompts → entry
+     appears → dashboard numbers tick up. Reuse docs/media/log-hotkey.gif or
+     record a dedicated docs/media/hero.gif, then uncomment:
+![Log in seconds, see it add up](docs/media/hero.gif)
 -->
 
-PrepDojo is a **daily-practice tracking system** built on [Obsidian](https://obsidian.md). One hotkey or a pasted LeetCode link is a complete log entry; one note is your whole picture, with streaks, topic and difficulty breakdowns, and a "needs re-review" list, always current.
+Job hunting is a hundred small efforts a day: a LeetCode problem at breakfast, ML review at night, a batch of applications in between. Each one is forgettable — together, they're your entire preparation. PrepDojo makes sure none of it disappears. Log anything in seconds (one keyboard shortcut, or just tell an AI "did two sum today"), and open one page for the full picture whenever you need it: your streak, which topics are solid and which are shaky, how many applications went out this week, and which resume actually gets you interviews.
 
-It ships as three coordinated layers, all generated from one config file:
+Everything stays in plain files on your own computer — no account, no subscription, nothing to lose access to. Built on [Obsidian](https://obsidian.md), free and local-first.
 
-- **Capture** — instant logging from anywhere: QuickAdd hotkey actions with dropdown prompts inside Obsidian, an AI logging skill (built for Claude, portable to any LLM agent) that turns "just did two sum" or a pasted LeetCode URL into a correctly formatted entry, or a CLI (`prepdojo.py`) that makes logging scriptable from any terminal, hook, or automation
-- **Storage** — entries are plain markdown bullets in your daily notes: human-readable, grep-able, no database, no lock-in
-- **Insight** — a live Dataview dashboard computing streaks, per-topic and per-difficulty breakdowns, and a "needs re-review" list; plus optional job application tracking (daily counts, pipeline, interview rate per resume version) backed by CSVs and updating in real time while the note is open
+## What you can do
+
+**Log a problem in two keystrokes.** Press a hotkey anywhere in Obsidian, pick the day and topic from dropdowns, done — the entry lands in the right daily note, correctly formatted, every time.
+
+<!-- TODO gif: hotkey → QuickAdd prompts (day, name, difficulty, topic) → entry
+     appearing in the daily note. Save as docs/media/log-hotkey.gif, embed:
+![Logging with a hotkey](docs/media/log-hotkey.gif)
+-->
+
+**Or just tell the AI.** Paste a LeetCode link into Claude, or say "did two sum today" — it identifies the problem, asks which approach you used, and writes the entry for you. "Log this for yesterday" works too.
+
+<!-- TODO screenshot: a Claude chat where a pasted LC link becomes a logged entry.
+     Save as docs/media/log-claude.png -->
+
+**Open one page, see everything.** Your streak, problems by topic and by difficulty, ML topics flagged for re-review, and this week's application count — always current the moment you open it.
+
+<!-- TODO screenshot (the money shot): the dashboard in Reading view showing the
+     streak line + by-topic and by-difficulty tables. Save as docs/media/dashboard.png -->
+
+**Know which resume actually works.** Log each application with the resume version you used, and the dashboard computes interview rates per version — you're A/B testing your own resume with real data instead of guessing.
+
+<!-- TODO screenshot: the "By resume version" table with rates.
+     Save as docs/media/resume-rates.png -->
 
 The default configuration tracks ML engineer interview prep (LeetCode, ML fundamentals, ML coding, system design, behavioral), but nothing is hardcoded: categories, tags, topic taxonomies, folder layout, hotkeys, and formats all live in `config.toml`, and `generate.py` rebuilds every layer — Obsidian configs, QuickAdd actions, dashboard, and the AI skill — to match. Rename the categories and the same machinery tracks language learning, fitness, or any daily practice.
 
-> **New to Obsidian?** It's a free, local-first notes app that stores everything as plain markdown files on your own machine — no account, no cloud lock-in, and a rich plugin ecosystem. PrepDojo builds on that: your log is just text you own, and the live dashboard is powered by Obsidian's [Dataview](https://obsidian.md/plugins?id=dataview) plugin. If you don't use Obsidian yet, it's a 5-minute [install](https://obsidian.md) and worth it on its own.
-
-## System overview
-
-Daily workflow, from a solved problem to insight:
-
-```mermaid
-flowchart LR
-    subgraph capture ["⚡ Capture (seconds)"]
-        subgraph obs ["inside Obsidian"]
-            QA["QuickAdd hotkey<br/>labeled prompts + dropdowns"]
-            MB["Manual bullet<br/>type it yourself"]
-        end
-        subgraph cl ["chat with Claude"]
-            CS["lc-logger skill<br/>paste a link or say 'log it'"]
-        end
-        subgraph term ["terminal / scripts"]
-            CLI["prepdojo CLI<br/>hooks, userscripts, automation"]
-        end
-    end
-    subgraph storage ["📝 Storage (plain markdown)"]
-        DN["Daily notes<br/><code>- LC #200 Number of Islands · Medium · bfs/dfs #lc</code>"]
-    end
-    subgraph insight ["📊 Insight (always current)"]
-        DB["Dataview dashboard<br/>streaks · topic coverage · difficulty mix · needs re-review"]
-    end
-    QA --> DN
-    CS --> DN
-    MB --> DN
-    CLI --> DN
-    DN --> DB
-```
-
-One-time setup, everything personalized from a single file:
-
-```mermaid
-flowchart LR
-    CFG["config.toml<br/>paths · tags · categories<br/>topics · hotkeys"] --> GEN["generate.py"]
-    GEN --> T["Daily note template"]
-    GEN --> D["Dashboard note"]
-    GEN --> Q["QuickAdd actions<br/>+ hotkey bindings"]
-    GEN --> S["lc-logger<br/>Claude skill"]
-    T & D & Q --> V["Your Obsidian vault"]
-    S --> C["Your Claude setup"]
-```
-
-## How it works
-
-Every entry is one plain bullet in a daily note, ending with a category tag:
-
-```
-## Interview Prep
-
-- LC #200 Number of Islands · Medium · bfs/dfs #lc
-- bias-variance tradeoff · 🟢 #mlfund
-- design a feed ranking system #mlsys
-```
-
-That's the entire data model. Three tools write and read these lines:
-
-1. **QuickAdd (Obsidian plugin)**: press a hotkey anywhere in Obsidian, pick a day ("today", "yesterday", "last friday"), fill labeled prompts with dropdowns for difficulty and topic. No typos, no format drift.
-2. **Claude skill** (optional): paste a LeetCode URL into a Claude (Cowork/Claude Code) session with vault access and it identifies the problem, asks which approach you used, and writes the entry.
-3. **Dashboard (Dataview)**: a single note that renders stats, streaks, and per-category tables from all daily notes. Open it; it is always current.
 
 ## Requirements
 
-- Obsidian, ideally **1.12+** (its built-in CLI lets Quick start install the plugins for you in one command; on older versions you install them by hand)
-- The community plugins [Calendar](https://obsidian.md/plugins?id=calendar), [Dataview](https://obsidian.md/plugins?id=dataview), and [QuickAdd](https://obsidian.md/plugins?id=quickadd) — Quick start below sets these up
-- Python 3.9+ to run the generator — on 3.11+ nothing extra is needed; on 3.9–3.10 the one-command `setup.py` installs the small `tomli` package for you (if you use `generate.py` directly instead, run `pip install tomli` first). No Python at all? See [manual setup](docs/manual-setup.md).
-- Optional: Claude desktop app (Cowork) or Claude Code for the logging skill
+Two things on your machine, and you're ready:
+
+- **Obsidian** — on 1.12+, setup also installs the three community plugins PrepDojo runs on ([Dataview](https://obsidian.md/plugins?id=dataview), [QuickAdd](https://obsidian.md/plugins?id=quickadd), [Calendar](https://obsidian.md/plugins?id=calendar)). Older versions work too; you add those three yourself in a few clicks ([how](#obsidian-older-than-112)).
+- **Python 3.9+** to run setup — on 3.11+ nothing extra is needed; on 3.9–3.10 setup installs the small `tomli` package for you. No Python at all? See [manual setup](docs/manual-setup.md).
+
+Optional: the Claude desktop app (Cowork) or Claude Code, if you want AI logging.
 
 ## Quick start
 
 The defaults work out of the box; you mostly just tell PrepDojo where your vault is. Two ways: one command, or the same steps by hand.
 
-### Fastest: one command
+### Fastest: one command (Obsidian 1.12+)
 
 ```bash
-python3 setup.py /path/to/YourVault
+python3 setup.py
 ```
 
-This creates your `config.toml`, installs the vault files (dashboard, daily-note template, QuickAdd config), and — on **Obsidian 1.12+** with its CLI enabled — installs and enables the three plugins. It finishes by printing the few GUI-only steps that remain. If the `obsidian` command isn't available (older Obsidian, or the CLI not enabled yet), it does everything else and tells you how to add the plugins by hand.
+It creates your `config.toml`, opens it in your editor, and waits. Paste your vault's location into the marked line (drag the folder into the editor to get the path — no typing), save, press Enter back in the terminal, and it finishes everything: vault files (dashboard, daily-note template, QuickAdd config), and — on **Obsidian 1.12+** with its CLI enabled — the three plugins, installed and enabled. It ends by printing the few GUI-only steps that remain. If the `obsidian` command isn't available (older Obsidian, or the CLI not enabled yet), it does everything else and tells you how to add the plugins by hand.
+
+(Prefer flags? `python3 setup.py /path/to/YourVault` skips the editor pause.)
 
 To get the automatic plugin install, two one-time things first: enable Obsidian's CLI (Settings → General → Command line interface → register it), and open your target vault in Obsidian at least once. The CLI installs plugins into whichever vault Obsidian has open, so `setup.py` checks that it matches your target and safely skips the plugin step (with instructions) if a different vault is open. Then finish the GUI-only bits the script lists at the end — enable Dataview's **JavaScript queries** and assign **QuickAdd hotkeys** — and you're done.
+
+#### Obsidian older than 1.12
+
+Everything works the same except the plugin install (older Obsidian has no CLI for setup to use). Run `python3 setup.py` as above; when it notes the `obsidian` command is missing, add the three plugins yourself:
+
+1. Settings → Community plugins → turn off Restricted mode
+2. Browse → install and enable **Dataview**, **QuickAdd**, and **Calendar**
+3. Continue with the GUI steps setup printed (JavaScript queries, hotkeys)
 
 ### Or set it up step by step
 
@@ -167,6 +137,74 @@ Run `python3 generate.py --no-install` (builds `dist/` without touching the vaul
 
 </details>
 
+## How it works
+
+Every entry is one plain bullet in a daily note, ending with a category tag:
+
+```
+## Interview Prep
+
+- LC #200 Number of Islands · Medium · bfs/dfs #lc
+- bias-variance tradeoff · 🟢 #mlfund
+- design a feed ranking system #mlsys
+```
+
+That's the entire data model. Three tools write and read these lines:
+
+1. **QuickAdd (Obsidian plugin)**: press a hotkey anywhere in Obsidian, pick a day ("today", "yesterday", "last friday"), fill labeled prompts with dropdowns for difficulty and topic. No typos, no format drift.
+2. **Claude skill** (optional): paste a LeetCode URL into a Claude (Cowork/Claude Code) session with vault access and it identifies the problem, asks which approach you used, and writes the entry.
+3. **Dashboard (Dataview)**: a single note that renders stats, streaks, and per-category tables from all daily notes. Open it; it is always current.
+
+## System overview
+
+Under the hood, three coordinated layers, all generated from one config file:
+
+- **Capture** — log what you did in seconds, from wherever you are. Three doors into the same log: QuickAdd hotkey actions with dropdown prompts inside Obsidian, an AI logging skill (built for Claude, portable to any LLM agent) that turns "just did two sum" or a pasted LeetCode URL into a correctly formatted entry, and a CLI (`prepdojo.py`) that makes logging scriptable from any terminal, hook, or automation. Every door validates entries, so the log can't drift into inconsistency
+- **Storage** — where your record lives. Plain text files on your own machine: markdown bullets in your daily notes for practice, CSV rows for job applications. Human-readable, grep-able, no database, no lock-in — every tool in this repo is replaceable, and your record outlives all of them
+- **Insight** — how you see your progress. One dashboard note computes it all from your record: streaks, per-topic and per-difficulty breakdowns, a "needs re-review" list, and application stats (daily counts, pipeline, interview rate per resume version), updating live while the note is open. It stores nothing itself, so regenerating, moving, or customizing it is always safe
+
+Daily workflow, from a solved problem to insight:
+
+```mermaid
+flowchart LR
+    subgraph capture ["⚡ Capture (seconds)"]
+        subgraph obs ["inside Obsidian"]
+            QA["QuickAdd hotkey<br/>labeled prompts + dropdowns"]
+            MB["Manual bullet<br/>type it yourself"]
+        end
+        subgraph cl ["chat with Claude"]
+            CS["lc-logger skill<br/>paste a link or say 'log it'"]
+        end
+        subgraph term ["terminal / scripts"]
+            CLI["prepdojo CLI<br/>hooks, userscripts, automation"]
+        end
+    end
+    subgraph storage ["📝 Storage (plain markdown)"]
+        DN["Daily notes<br/><code>- LC #200 Number of Islands · Medium · bfs/dfs #lc</code>"]
+    end
+    subgraph insight ["📊 Insight (always current)"]
+        DB["Dataview dashboard<br/>streaks · topic coverage · difficulty mix · needs re-review"]
+    end
+    QA --> DN
+    CS --> DN
+    MB --> DN
+    CLI --> DN
+    DN --> DB
+```
+
+One-time setup, everything personalized from a single file:
+
+```mermaid
+flowchart LR
+    CFG["config.toml<br/>paths · tags · categories<br/>topics · hotkeys"] --> GEN["generate.py"]
+    GEN --> T["Daily note template"]
+    GEN --> D["Dashboard note"]
+    GEN --> Q["QuickAdd actions<br/>+ hotkey bindings"]
+    GEN --> S["lc-logger<br/>Claude skill"]
+    T & D & Q --> V["Your Obsidian vault"]
+    S --> C["Your Claude setup"]
+```
+
 ## Configuration
 
 All configuration lives in `config.toml` (your personal copy of `config-template.toml`), grouped by how likely you are to touch it:
@@ -178,7 +216,7 @@ All configuration lives in `config.toml` (your personal copy of `config-template
 | `[leetcode]` | `topics`, `difficulties` | to adjust the topic taxonomy the dropdowns and dashboard grouping use |
 | `[applications]` | `folder` | where the job-application CSVs live in the vault; the installer creates empty starters there (never overwriting existing data) and the dashboard's Job Applications section reads them |
 
-After any change, rerun `python3 generate.py --install /path/to/YourVault` (see [Changing your configuration later](#changing-your-configuration-later)).
+After any change, rerun `python3 generate.py` (see [Changing your configuration later](#changing-your-configuration-later)).
 
 ## Logging
 
@@ -220,8 +258,10 @@ After any change, rerun `python3 generate.py --install /path/to/YourVault` (see 
 Generation is a build step, not a one-time event. When you edit `config.toml` (new topic, renamed category, different hotkey), rerun:
 
 ```bash
-python3 generate.py --install /path/to/YourVault
+python3 generate.py
 ```
+
+(It installs into the vault recorded in your config — set up for you by `setup.py`. Pass `--install /path/to/AnotherVault` to target a different one.)
 
 and restart Obsidian. Three things to know:
 
