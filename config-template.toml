@@ -91,4 +91,6 @@ topics = [
 # ------------------------------------------------------------
 
 [applications]
+# Hotkey for the in-Obsidian "Log Application" prompts (QuickAdd macro).
+hotkey = { modifiers = ["Mod", "Shift"], key = "A" }
 folder = "Applications"

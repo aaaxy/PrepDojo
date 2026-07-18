@@ -222,6 +222,7 @@ After any change, rerun `python3 generate.py` (see [Changing your configuration 
 ## Logging
 
 - In Obsidian: hotkey (default `Cmd/Ctrl+Shift+L` for LeetCode, `Cmd/Ctrl+Shift+M` for ML fundamentals) → pick day → answer prompts. The other three categories get QuickAdd choices too; assign hotkeys in `config.toml` or via Settings → Hotkeys.
+- Applications, also by hotkey: `Cmd/Ctrl+Shift+A` (configurable) opens a short prompt flow — company, position, resume version picked from your catalog, status — and appends a properly formatted row to `applications.csv`. No terminal, no AI, no CSV editing; the dashboard picks it up within seconds.
 - With Claude: install `dist/claude-skill/lc-logger.skill`, connect your vault folder to the session, then paste a problem link or say "did 239 yesterday, solved with dp".
 - With other LLMs: the skill is plain markdown with every convention spelled out, so it doubles as a ready-made system prompt for any agent that can read and write files in your vault (a custom GPT, Cursor rules, a Gemini CLI context file, an `AGENTS.md`). Copy the contents of `dist/claude-skill/lc-logger/SKILL.md` into your agent's instructions; only the packaging and the clickable question dialog are Claude-specific, and the latter degrades gracefully to a plain-text question.
 - From a terminal or script: the CLI validates against your taxonomy and writes to the right daily note (Obsidian doesn't need to be running):

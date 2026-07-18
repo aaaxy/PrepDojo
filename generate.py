@@ -175,6 +175,26 @@ def build_quickadd(cfg: dict) -> dict:
             },
             "templater": {"afterCapture": "none"},
         })
+    # In-Obsidian application logging: a macro choice running the generated
+    # user script (prompts for company/position/version/status, appends a
+    # properly quoted CSV row).
+    choices.append({
+        "id": stable_id("apps-log"),
+        "name": "Log Application",
+        "type": "Macro",
+        "command": True,
+        "runOnStartup": False,
+        "macro": {
+            "id": stable_id("apps-log-macro"),
+            "name": "Log Application",
+            "commands": [{
+                "name": "prepdojo-log-application",
+                "type": "UserScript",
+                "path": "scripts/prepdojo-log-application.js",
+                "settings": {},
+            }],
+        },
+    })
     return {
         "choices": choices,
         "inputPrompt": "single-line",
@@ -206,6 +226,11 @@ def build_hotkeys(cfg: dict) -> dict:
             out[f"quickadd:choice:{stable_id(key)}"] = [
                 {"modifiers": hotkey["modifiers"], "key": hotkey["key"]}
             ]
+    apps_hotkey = cfg.get("applications", {}).get("hotkey")
+    if apps_hotkey:
+        out[f"quickadd:choice:{stable_id('apps-log')}"] = [
+            {"modifiers": apps_hotkey["modifiers"], "key": apps_hotkey["key"]}
+        ]
     return out
 
 
@@ -245,6 +270,10 @@ def main() -> None:
     apps_folder = rep["@@APPLICATIONS_FOLDER@@"]
     write(DIST / "vault" / apps_folder / "applications.csv", APPLICATIONS_HEADER)
     write(DIST / "vault" / apps_folder / "resume-versions.csv", RESUME_VERSIONS_HEADER)
+
+    # QuickAdd user script for in-Obsidian application logging
+    app_script = render((TEMPLATES / "vault" / "log-application.js").read_text(encoding="utf-8"), rep)
+    write(DIST / "vault" / "scripts" / "prepdojo-log-application.js", app_script)
 
     # Obsidian config
     write(DIST / "obsidian" / "daily-notes.json", json.dumps({
@@ -297,6 +326,8 @@ def main() -> None:
         pairs = [
             (DIST / "vault" / v["daily_note_template"], vault / v["daily_note_template"]),
             (DIST / "vault" / v["dashboard_path"], vault / v["dashboard_path"]),
+            (DIST / "vault" / "scripts" / "prepdojo-log-application.js",
+             vault / "scripts" / "prepdojo-log-application.js"),
             (DIST / "obsidian" / "daily-notes.json", vault / ".obsidian" / "daily-notes.json"),
             (DIST / "obsidian" / "plugins" / "quickadd" / "data.json",
              vault / ".obsidian" / "plugins" / "quickadd" / "data.json"),
