@@ -5,7 +5,7 @@ tags:
 
 # Interview Prep Dashboard
 
-## Log
+## ✍️ Log
 
 ```dataviewjs
 // One-click access to every PrepDojo QuickAdd flow (hotkeys still work too).
@@ -67,11 +67,11 @@ mk(jobsRow, "＋ Application", "Log Application", "#00b8d9");
 mk(jobsRow, "＋ Resume version", "Add Resume Version", "#8993a4");
 ```
 
-> [!note]- How logging works
-> One click on a button above → pick the day → answer the prompts. The QuickAdd hotkeys run the same flows from anywhere in Obsidian.
-> Entries land as plain bullets under `@@PREP_HEADING@@` in your daily notes, e.g. `- LC #200 Number of Islands · Medium · bfs/dfs #@@TAG_LC@@`. Checked tasks also count (legacy); unchecked boxes are ignored as placeholders.
+<br>
 
-## Stats
+---
+
+## 📊 Stats
 
 ```dataviewjs
 const tags = {"#@@TAG_LC@@": "@@NAME_LC@@", "#@@TAG_MLFUND@@": "@@NAME_MLFUND@@", "#@@TAG_MLCODE@@": "@@NAME_MLCODE@@", "#@@TAG_MLSYS@@": "@@NAME_MLSYS@@", "#@@TAG_BQ@@": "@@NAME_BQ@@"};
@@ -140,26 +140,14 @@ if (appsTotal !== null) statRows.unshift(["Applications", appsWeek, appsTotal]);
 dv.table(["Category", "Last 7 days", "All time"], statRows);
 ```
 
-## This week
+<br>
 
-```dataviewjs
-const tags = ["#@@TAG_LC@@", "#@@TAG_MLFUND@@", "#@@TAG_MLCODE@@", "#@@TAG_MLSYS@@", "#@@TAG_BQ@@"];
-const logged = i => !i.task || i.completed;
-const weekAgo = dv.date("today").minus({ days: 6 });
-const rows = [];
-for (const p of dv.pages('"@@DAILY_NOTES_FOLDER@@"')) {
-  const day = dv.date(p.file.name);
-  if (!day || day < weekAgo) continue;
-  for (const i of p.file.lists.filter(i => logged(i) && tags.some(t => i.text.includes(t))))
-    rows.push({ day: p.file.name, link: p.file.link, text: i.text });
-}
-rows.sort((a, b) => b.day.localeCompare(a.day));
-dv.table(["Date", "Entry"], rows.map(r => [r.link, r.text]));
-```
+---
 
-## Job Applications
+## 💼 Job Applications
 
-> Source: `@@APPLICATIONS_FOLDER@@/applications.csv` (+ `resume-versions.csv`). Log with the ＋ Application button above (or `prepdojo apps log`, a CSV editor, any spreadsheet app — all write the same file); this section re-reads it and updates live while the note is open.
+> [!note]- Where this data lives
+> Source: `@@APPLICATIONS_FOLDER@@/applications.csv` (+ `resume-versions.csv`). Log with the ＋ Application button (or `prepdojo apps log`, a CSV editor, any spreadsheet app — all write the same file); this section re-reads it and updates live while the note is open.
 
 ```dataviewjs
 // Self-refreshing: reads the CSV uncached (dv.io.csv caches and misses
@@ -197,6 +185,8 @@ function normDate(v) {
   return `${y}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`;
 }
 
+let rangeDays = null; // view state only; null = all time (rates need the full funnel)
+
 async function render() {
   const apps = parseCSV(await app.vault.adapter.read(PATH));
   for (const r of apps) r["Applied Date"] = normDate(r["Applied Date"]);
@@ -215,11 +205,59 @@ async function render() {
     const d = dv.date(r["Applied Date"]);
     return d && d >= weekAgo && d <= now;
   }).length;
-  dv.paragraph(`**📨 Today: ${todayN}** · last 7 days: ${weekN} · total: ${apps.length}`);
+  // headline left, log buttons right (same flows as the Log bar up top)
+  const head = dv.container.createEl("div", { attr: { style:
+    "display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 6px 0;" } });
+  const headText = head.createEl("span");
+  headText.createEl("strong", { text: `📨 Today: ${todayN}` });
+  headText.appendText(` · last 7 days: ${weekN} · total: ${apps.length}`);
+  const headBtns = head.createEl("span", { attr: { style:
+    "margin-left: auto; display: flex; gap: 6px;" } });
+  const qaBtn = (label, choice, color) => {
+    const b = headBtns.createEl("button", { text: label, attr: { style:
+      `border-left: 3px solid ${color}; background: ${color}1f; border-radius: 5px;` } });
+    b.onclick = async () => {
+      const qa = app.plugins.plugins.quickadd;
+      if (!qa || !qa.api || !qa.api.executeChoice) {
+        new Notice("QuickAdd isn't available — is the plugin enabled?"); return;
+      }
+      if (!(qa.settings?.choices || []).some(c => c.name === choice)) {
+        new Notice("QuickAdd choice '" + choice + "' not found — deploy PrepDojo's QuickAdd config (see README → Updating).");
+        return;
+      }
+      try { await qa.api.executeChoice(choice); }
+      catch (e) { console.debug("PrepDojo: choice cancelled or failed", e); }
+    };
+  };
+  qaBtn("＋ Application", "Log Application", "#00b8d9");
+  qaBtn("＋ Resume version", "Add Resume Version", "#8993a4");
+
+  // range chips: filter Pipeline / Responses / By resume version by Applied Date
+  const bar = dv.container.createEl("div", { attr: { style:
+    "display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 28px 0 6px 0;" } });
+  for (const [label, days] of [["7d", 7], ["14d", 14], ["30d", 30], ["90d", 90], ["All", null]]) {
+    const active = days === rangeDays;
+    const chip = bar.createEl("button", { text: label, attr: { style:
+      "border-radius: 5px; padding: 2px 10px;"
+      + (active ? " background: var(--interactive-accent); color: var(--text-on-accent);" : "") } });
+    chip.onclick = () => { rangeDays = days; render(); };
+  }
+  const cutoff = rangeDays === null ? null : now.minus({ days: rangeDays - 1 });
+  const rows = cutoff === null ? apps : apps.filter(r => {
+    const d = dv.date(r["Applied Date"]);
+    return d && d >= cutoff && d <= now;
+  });
+  const undated = cutoff === null ? 0 : apps.filter(r => !dv.date(r["Applied Date"])).length;
+  const rangeText = cutoff === null
+    ? `Showing all ${apps.length} applications`
+    : `Showing last ${rangeDays} days (${cutoff.toFormat("yyyy-MM-dd")} – ${now.toFormat("yyyy-MM-dd")}) · ${rows.length} applications`
+      + (undated ? ` · ${undated} without a date excluded` : "");
+  dv.container.createEl("div", { text: rangeText, attr: { style:
+    "font-size: 0.8em; font-style: italic; color: #8a8a8a; margin: 0 0 8px 0;" } });
 
   // pipeline: count by current status
   const byStatus = {};
-  for (const r of apps) byStatus[r["Status"] || "—"] = (byStatus[r["Status"] || "—"] ?? 0) + 1;
+  for (const r of rows) byStatus[r["Status"] || "—"] = (byStatus[r["Status"] || "—"] ?? 0) + 1;
   const active = ["Applied", "OA", "Phone Screen", "Onsite", "Team Match"]
     .reduce((s, k) => s + (byStatus[k] ?? 0), 0);
   dv.header(3, "Pipeline");
@@ -228,21 +266,21 @@ async function render() {
     Object.entries(byStatus).sort((a, b) => b[1] - a[1]));
 
   // milestones ever reached (from stage history)
-  const ever = s => apps.filter(r => (r["Stage History"] || "").toLowerCase()
+  const ever = s => rows.filter(r => (r["Stage History"] || "").toLowerCase()
     .includes(s.toLowerCase())).length;
-  const nInt = apps.filter(interviewed).length;
+  const nInt = rows.filter(interviewed).length;
   dv.header(3, "Responses");
   dv.table(["Milestone", "Count", "Rate"], [
     ["Ever Phone Screen", ever("Phone Screen"), ""],
     ["Ever Onsite", ever("Onsite"), ""],
     ["Ever Offer", ever("Offer"), ""],
-    ["Ever interviewed (≥1 round)", nInt, (100 * nInt / apps.length).toFixed(1) + "%"],
+    ["Ever interviewed (≥1 round)", nInt, rows.length ? (100 * nInt / rows.length).toFixed(1) + "%" : "—"],
     ["Rejected", byStatus["Rejected"] ?? 0, ""],
   ]);
 
   // by resume version: usage + interview rate
   const byVer = {};
-  for (const r of apps) {
+  for (const r of rows) {
     const v = r["Resume Version"] || "—";
     (byVer[v] ??= { n: 0, int: 0 });
     byVer[v].n++;
@@ -253,15 +291,6 @@ async function render() {
     Object.entries(byVer)
       .sort((a, b) => b[1].n - a[1].n)
       .map(([v, s]) => [v, s.n, s.int, s.n ? (100 * s.int / s.n).toFixed(0) + "%" : "—"]));
-
-  // last 14 days
-  dv.header(3, "Last 14 days");
-  const days = [];
-  for (let i = 0; i < 14; i++) {
-    const d = now.minus({ days: i }).toFormat("yyyy-MM-dd");
-    if (perDay[d]) days.push([d, perDay[d]]);
-  }
-  dv.table(["Date", "Applications"], days);
 }
 
 let lastMtime = 0;
@@ -276,7 +305,14 @@ const pollId = window.setInterval(async () => {
 }, 3000);
 ```
 
-## @@NAME_LC@@
+<br>
+
+---
+
+## 🧩 @@NAME_LC@@
+
+> [!note]- Where this data lives
+> Source: your daily notes in `@@DAILY_NOTES_FOLDER@@/`, as plain bullets under `@@PREP_HEADING@@`, e.g. `- LC #200 Number of Islands · Medium · bfs/dfs #@@TAG_LC@@`. The Import and ＋ buttons write there for you; you can also type entries directly. This section recomputes from those notes every time it renders.
 
 ```dataviewjs
 // Range-filtered view of logged problems, with one-click import of recent
@@ -379,20 +415,74 @@ async function lcImport(btn) {
   }
 }
 
+const TOPICS = "@@TOPICS_CSV@@".split(",");
+
+async function addTopic(r, btn) {
+  const qa = app.plugins.plugins.quickadd;
+  if (!qa || !qa.api || !qa.api.suggester) {
+    new Notice("QuickAdd isn't available — is the plugin enabled?"); return;
+  }
+  let topic;
+  try { topic = await qa.api.suggester(TOPICS, TOPICS); }
+  catch (e) { return; } // picker cancelled — nothing to do
+  if (!topic) return;
+  const path = "@@DAILY_NOTES_FOLDER@@/" + r.day + ".md";
+  let raw;
+  try { raw = await app.vault.adapter.read(path); }
+  catch (e) { new Notice("Couldn't open " + r.day + "'s note."); return; }
+  const lines = raw.split("\n");
+  const keyOf = s => { const m = /#\s*(\d+)|\b(\d+)\./.exec(s); return m ? (m[1] || m[2]) : null; };
+  const rkey = keyOf(r.problem);
+  let done = false;
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (!l.includes("#@@TAG_LC@@")) continue;
+    const match = rkey ? keyOf(l) === rkey : l.includes(r.problem);
+    if (!match || l.split("\u00b7").length >= 3) continue; // wrong entry, or topic already set
+    lines[i] = l.replace(/\s*#@@TAG_LC@@/, " \u00b7 " + topic + " #@@TAG_LC@@");
+    done = true; break;
+  }
+  if (!done) {
+    new Notice("Couldn't find that entry — it may have been edited. Add the topic in the daily note.");
+    return;
+  }
+  await app.vault.adapter.write(path, lines.join("\n"));
+  new Notice(r.problem + " \u2192 " + topic);
+}
+
 function render() {
   dv.container.innerHTML = "";
 
-  // controls: import + range chips
+  // two ways to log, then the range chips on their own row
+  dv.container.createEl("div", { text:
+    "Two ways to log: import your accepted LeetCode submissions from the last 7 days, or add a solve by hand.",
+    attr: { style: "font-size: 0.8em; font-style: italic; color: #8a8a8a; margin: 0 0 6px 0;" } });
   const bar = dv.container.createEl("div", { attr: { style:
     "display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 6px 0;" } });
   const imp = bar.createEl("button", { text: "⟳ Import from LeetCode", attr: { style:
     "border-left: 3px solid #4c9aff; background: #4c9aff1f; border-radius: 5px;" } });
   imp.onclick = () => lcImport(imp);
-  bar.createEl("span", { attr: { style: "width: 10px;" } });
-  const ranges = [["7d", 7], ["30d", 30], ["90d", 90], ["All", null]];
-  for (const [label, days] of ranges) {
+  bar.createEl("span", { text: "or", attr: { style:
+    "font-size: 0.8em; color: var(--text-muted);" } });
+  const manual = bar.createEl("button", { text: "＋ @@NAME_LC@@", attr: { style:
+    "border-left: 3px solid #4c9aff; background: #4c9aff1f; border-radius: 5px;" } });
+  manual.onclick = async () => {
+    const qa = app.plugins.plugins.quickadd;
+    if (!qa || !qa.api || !qa.api.executeChoice) {
+      new Notice("QuickAdd isn't available — is the plugin enabled?"); return;
+    }
+    if (!(qa.settings?.choices || []).some(c => c.name === "Log @@NAME_LC@@")) {
+      new Notice("QuickAdd choice 'Log @@NAME_LC@@' not found — deploy PrepDojo's QuickAdd config (see README → Updating).");
+      return;
+    }
+    try { await qa.api.executeChoice("Log @@NAME_LC@@"); }
+    catch (e) { console.debug("PrepDojo: choice cancelled or failed", e); }
+  };
+  const chipRow = dv.container.createEl("div", { attr: { style:
+    "display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 28px 0 6px 0;" } });
+  for (const [label, days] of [["7d", 7], ["14d", 14], ["30d", 30], ["90d", 90], ["All", null]]) {
     const active = days === rangeDays;
-    const chip = bar.createEl("button", { text: label, attr: { style:
+    const chip = chipRow.createEl("button", { text: label, attr: { style:
       "border-radius: 5px; padding: 2px 10px;"
       + (active ? " background: var(--interactive-accent); color: var(--text-on-accent);" : "") } });
     chip.onclick = () => { rangeDays = days; render(); };
@@ -432,13 +522,24 @@ function render() {
   dv.container.createEl("div", { text: rangeText, attr: { style:
     "font-size: 0.8em; font-style: italic; color: #8a8a8a; margin: 0 0 8px 0;" } });
 
-  // Needs topic: all-time todo list, unaffected by the range
+  // Needs topic: all-time todo list, unaffected by the range.
+  // Each row has a picker that writes the topic into the entry — no manual editing.
   const untopiced = all.filter(r => r.topic === "—");
   if (untopiced.length) {
     dv.header(3, "Needs topic");
-    dv.paragraph("*Add how you solved these to the entry in its daily note.*");
-    dv.table(["Date", "Problem", "Difficulty"],
-      untopiced.map(r => [r.link, r.problem, r.diff]));
+    dv.container.createEl("div", { text:
+      "Imported entries don't say how you solved the problem. Pick a topic and it's filled in for you.",
+      attr: { style: "font-size: 0.8em; font-style: italic; color: #8a8a8a; margin: 0 0 6px 0;" } });
+    for (const r of untopiced) {
+      const rowEl = dv.container.createEl("div", { attr: { style:
+        "display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 3px 0;" } });
+      const a = rowEl.createEl("a", { text: r.day, attr: { style: "min-width: 88px;" } });
+      a.onclick = () => app.workspace.openLinkText(r.day, "", false);
+      rowEl.createEl("span", { text: `${r.problem} · ${r.diff}` });
+      const b = rowEl.createEl("button", { text: "＋ Topic", attr: { style:
+        "border-left: 3px solid #4c9aff; background: #4c9aff1f; border-radius: 5px; padding: 1px 10px;" } });
+      b.onclick = () => addTopic(r, b);
+    }
   }
 
   // By topic (groups by main topic; "dp - knapsack" counts under "dp")
@@ -468,7 +569,11 @@ function render() {
 render();
 ```
 
-## @@NAME_MLFUND@@
+<br>
+
+---
+
+## 🧠 @@NAME_MLFUND@@
 
 ```dataviewjs
 const logged = i => !i.task || i.completed;
@@ -495,7 +600,11 @@ dv.header(3, "All topics reviewed");
 dv.table(["Date", "Topic", "Confidence"], rows.map(r => [r.link, r.topic, r.conf]));
 ```
 
-## @@NAME_MLCODE@@ & @@NAME_MLSYS@@
+<br>
+
+---
+
+## ⚙️ @@NAME_MLCODE@@ & @@NAME_MLSYS@@
 
 ```dataviewjs
 const logged = i => !i.task || i.completed;
@@ -510,7 +619,11 @@ rows.sort((a, b) => b.day.localeCompare(a.day));
 dv.table(["Date", "Type", "Entry"], rows.map(r => [r.link, r.type, r.text]));
 ```
 
-## @@NAME_BQ@@
+<br>
+
+---
+
+## 🗣️ @@NAME_BQ@@
 
 ```dataviewjs
 const logged = i => !i.task || i.completed;
