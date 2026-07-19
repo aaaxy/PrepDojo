@@ -136,10 +136,14 @@ function quickActionButtons() {
       if (!qa || !qa.api || !qa.api.executeChoice) {
         new Notice("QuickAdd isn't available — is the plugin enabled?"); return;
       }
-      try { await qa.api.executeChoice(choice); }
-      catch (e) {
+      const known = (qa.settings?.choices || []).some(c => c.name === choice);
+      if (!known) {
         new Notice("QuickAdd choice '" + choice + "' not found — deploy PrepDojo's QuickAdd config (see README → Updating).");
+        return;
       }
+      // Cancelling a prompt rejects the promise; that's normal, not an error.
+      try { await qa.api.executeChoice(choice); }
+      catch (e) { console.debug("PrepDojo: choice cancelled or failed", e); }
     };
   };
   mk("＋ Log application", "Log Application");
