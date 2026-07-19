@@ -4,7 +4,56 @@ tags: [interview-prep]
 
 # Interview Prep Dashboard
 
-> How to log: QuickAdd hotkey → pick day → fill prompts. Entries are plain bullets under `@@PREP_HEADING@@` ending in a tag, e.g. `- LC #200 Number of Islands · Medium · bfs/dfs #@@TAG_LC@@`. Checked tasks also count (legacy); unchecked boxes are ignored as placeholders.
+## Log
+
+```dataviewjs
+// One-click access to every PrepDojo QuickAdd flow (hotkeys still work too).
+// Grouped and color-coded; accents use a colored edge + faint tint so they
+// stay readable in both light and dark themes.
+const wrap = dv.container.createEl("div");
+
+const group = (title) => {
+  const g = wrap.createEl("div", { attr: { style: "margin: 8px 0 10px 0;" } });
+  g.createEl("div", { text: title, attr: { style:
+    "font-size: 0.85em; opacity: 0.6; margin-bottom: 5px;" } });
+  return g.createEl("div", { attr: { style:
+    "display: flex; flex-wrap: wrap; gap: 6px;" } });
+};
+
+const mk = (row, label, choice, color) => {
+  const b = row.createEl("button", { text: label, attr: { style:
+    `border-left: 3px solid ${color}; background: ${color}1f; border-radius: 5px;` } });
+  b.onclick = async () => {
+    const qa = app.plugins.plugins.quickadd;
+    if (!qa || !qa.api || !qa.api.executeChoice) {
+      new Notice("QuickAdd isn't available — is the plugin enabled?"); return;
+    }
+    const known = (qa.settings?.choices || []).some(c => c.name === choice);
+    if (!known) {
+      new Notice("QuickAdd choice '" + choice + "' not found — deploy PrepDojo's QuickAdd config (see README → Updating).");
+      return;
+    }
+    // Cancelling a prompt rejects the promise; that's normal, not an error.
+    try { await qa.api.executeChoice(choice); }
+    catch (e) { console.debug("PrepDojo: choice cancelled or failed", e); }
+  };
+};
+
+const practice = group("What did you practice today?");
+mk(practice, "＋ @@NAME_LC@@", "Log @@NAME_LC@@", "#4c9aff");
+mk(practice, "＋ @@NAME_MLFUND@@", "Log @@NAME_MLFUND@@", "#36b37e");
+mk(practice, "＋ @@NAME_MLCODE@@", "Log @@NAME_MLCODE@@", "#9f7fff");
+mk(practice, "＋ @@NAME_MLSYS@@", "Log @@NAME_MLSYS@@", "#ff991f");
+mk(practice, "＋ @@NAME_BQ@@", "Log @@NAME_BQ@@", "#ff7eb6");
+
+const jobs = group("Where did you apply today?");
+mk(jobs, "＋ Application", "Log Application", "#00b8d9");
+mk(jobs, "＋ Resume version", "Add Resume Version", "#8993a4");
+```
+
+> [!note]- How logging works
+> One click on a button above → pick the day → answer the prompts. The QuickAdd hotkeys run the same flows from anywhere in Obsidian.
+> Entries land as plain bullets under `@@PREP_HEADING@@` in your daily notes, e.g. `- LC #200 Number of Islands · Medium · bfs/dfs #@@TAG_LC@@`. Checked tasks also count (legacy); unchecked boxes are ignored as placeholders.
 
 ## Stats
 
@@ -86,7 +135,7 @@ dv.table(["Date", "Entry"], rows.map(r => [r.link, r.text]));
 
 ## Job Applications
 
-> Source: `@@APPLICATIONS_FOLDER@@/applications.csv` (+ `resume-versions.csv`). Log there via `prepdojo apps log`, a CSV editor plugin, or any spreadsheet app; this section re-reads the file and updates live while the note is open.
+> Source: `@@APPLICATIONS_FOLDER@@/applications.csv` (+ `resume-versions.csv`). Log with the ＋ Application button above (or `prepdojo apps log`, a CSV editor, any spreadsheet app — all write the same file); this section re-reads it and updates live while the note is open.
 
 ```dataviewjs
 // Self-refreshing: reads the CSV uncached (dv.io.csv caches and misses
@@ -124,37 +173,10 @@ function normDate(v) {
   return `${y}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`;
 }
 
-function quickActionButtons() {
-  // Buttons that fire the PrepDojo QuickAdd choices — same flows as the
-  // hotkey / command palette, one click from the dashboard.
-  const bar = dv.container.createEl("div",
-    { attr: { style: "margin: 4px 0 12px 0; display: flex; gap: 8px;" } });
-  const mk = (label, choice) => {
-    const b = bar.createEl("button", { text: label });
-    b.onclick = async () => {
-      const qa = app.plugins.plugins.quickadd;
-      if (!qa || !qa.api || !qa.api.executeChoice) {
-        new Notice("QuickAdd isn't available — is the plugin enabled?"); return;
-      }
-      const known = (qa.settings?.choices || []).some(c => c.name === choice);
-      if (!known) {
-        new Notice("QuickAdd choice '" + choice + "' not found — deploy PrepDojo's QuickAdd config (see README → Updating).");
-        return;
-      }
-      // Cancelling a prompt rejects the promise; that's normal, not an error.
-      try { await qa.api.executeChoice(choice); }
-      catch (e) { console.debug("PrepDojo: choice cancelled or failed", e); }
-    };
-  };
-  mk("＋ Log application", "Log Application");
-  mk("＋ Add resume version", "Add Resume Version");
-}
-
 async function render() {
   const apps = parseCSV(await app.vault.adapter.read(PATH));
   for (const r of apps) r["Applied Date"] = normDate(r["Applied Date"]);
   dv.container.innerHTML = "";
-  quickActionButtons();
   if (!apps.length) { dv.paragraph("*No applications logged yet.*"); return; }
   const now = dv.date("today");
   const weekAgo = now.minus({ days: 6 });
