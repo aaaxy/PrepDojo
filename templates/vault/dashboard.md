@@ -5,7 +5,7 @@ tags:
 
 # Interview Prep Dashboard
 
-## ✍️ Log
+## ⚡ Log
 
 ```dataviewjs
 // One-click access to every PrepDojo QuickAdd flow (hotkeys still work too).
@@ -573,7 +573,7 @@ render();
 
 ---
 
-## 🧠 @@NAME_MLFUND@@
+## 📚 @@NAME_MLFUND@@
 
 ```dataviewjs
 const logged = i => !i.task || i.completed;
@@ -623,7 +623,7 @@ dv.table(["Date", "Type", "Entry"], rows.map(r => [r.link, r.type, r.text]));
 
 ---
 
-## 🗣️ @@NAME_BQ@@
+## 💬 @@NAME_BQ@@
 
 ```dataviewjs
 const logged = i => !i.task || i.completed;

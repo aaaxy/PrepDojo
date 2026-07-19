@@ -25,12 +25,19 @@ Copy `templates/vault/dashboard.md` into your vault (e.g. as `Interview Prep Das
 | `@@PREP_HEADING@@` | `## Interview Prep` |
 | `@@TAG_LC@@` / `@@TAG_MLFUND@@` / `@@TAG_MLCODE@@` / `@@TAG_MLSYS@@` / `@@TAG_BQ@@` | `lc`, `mlfund`, `mlcode`, `mlsys`, `bq` |
 | `@@NAME_LC@@` etc. | `LeetCode`, `ML Fundamentals`, ... |
+| `@@DATE_FORMAT@@` | `YYYY-MM-DD` (must match your daily-note filename format) |
+| `@@DAILY_NOTE_TEMPLATE@@` | `Templates/Daily Note.md` |
+| `@@APPLICATIONS_FOLDER@@` | `Career/Applications` (where the two CSVs from step 5 live) |
+| `@@TOPICS_CSV@@` | the same comma-separated topic list as in step 4 |
+| `@@LC_USERNAME@@` | your LeetCode username, or empty to disable the import button |
 
 Open the note in Reading view. Tables appear once you have logged entries.
 
+The **⟳ Import from LeetCode** button pulls your accepted submissions from the last 7 days (your LeetCode profile must be public). Leave `@@LC_USERNAME@@` as an empty string (`""`) if you don't want it.
+
 ## 4. QuickAdd captures
 
-Settings → QuickAdd. For each category, type a name (e.g. `Log LC`), choose type **Capture**, click **Add Choice**, then open its ⚙️ settings:
+Settings → QuickAdd. For each category, add a choice named exactly `Log ` + the category name you used in the dashboard (`Log LeetCode`, `Log ML Fundamentals`, `Log ML Coding`, `Log ML System Design`, `Log Behavioral`) — the dashboard buttons run choices by that name, so a different name breaks them. Choose type **Capture**, click **Add Choice**, then open its ⚙️ settings:
 
 - **Capture To**: `Calendar/Daily Notes/{{VDATE:Which day?,YYYY-MM-DD|today}}.md`
   (the `VDATE` prompt accepts natural language: today, yesterday, last friday, or aliases like `t`, `yd` configurable in QuickAdd's "Date aliases" setting)
@@ -73,10 +80,29 @@ A plain `{{VALUE:label}}` prompts for text with that label; a comma-separated `{
 
 Finally, click the ⚡ (command) icon on each choice so it becomes assignable, then Settings → Hotkeys → search "QuickAdd" → assign (suggested: `Cmd/Ctrl+Shift+L` for LC, `Cmd/Ctrl+Shift+M` for ML fundamentals).
 
-## 5. Claude skill (optional)
+## 5. Job applications (optional)
+
+The 💼 Job Applications section reads two CSVs. Skip this step and the section stays empty; everything else still works.
+
+1. In your `@@APPLICATIONS_FOLDER@@` folder, create `applications.csv` and `resume-versions.csv` with these header rows:
+
+```
+Company,Position Title,Req ID,Job Link,Location,Remote?,Comp Range,Applied Date,Resume Version,Cover Letter,Referral,Status,Stage History,Last Update,Next Action,Recruiter / Contact,Notes
+```
+
+```
+Version ID,Short Description,Emphasis / Angle,Target Role Type,File Path,Date Last Updated,Notes
+```
+
+2. Copy `templates/vault/log-application.js` and `templates/vault/add-resume-version.js` into a `scripts/` folder in your vault, replacing `@@APPLICATIONS_FOLDER@@` in each.
+3. Settings → QuickAdd: add two **Macro** choices named exactly `Log Application` and `Add Resume Version`, each running its user script (Manage Macros → add the script from `scripts/`).
+
+The ＋ Application and ＋ Resume version buttons on the dashboard run these two choices; you can also edit the CSVs in any spreadsheet app (export as CSV, keep the header row).
+
+## 6. Claude skill (optional)
 
 If you use Claude Cowork or Claude Code with your vault as a working folder, copy `templates/skill/SKILL.md`, replace the same placeholders as above (plus `@@DATE_FORMAT@@`, `@@DAILY_NOTE_TEMPLATE@@`, `@@DASHBOARD_PATH@@`, `@@TOPICS_INLINE@@`, `@@DIFFICULTIES_PIPE@@`), and install it as a skill named `lc-logger`. Then pasting a LeetCode link into a session is enough to log a problem.
 
-## 6. Try it
+## 7. Try it
 
 Press your hotkey, log a problem for "today", then open the dashboard in Reading view. You should see the entry in every relevant table and a 1-day streak.
