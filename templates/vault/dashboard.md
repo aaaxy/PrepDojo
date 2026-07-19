@@ -12,12 +12,19 @@ tags: [interview-prep]
 // stay readable in both light and dark themes.
 const wrap = dv.container.createEl("div");
 
-const group = (title) => {
+const section = (title) => {
   const g = wrap.createEl("div", { attr: { style: "margin: 8px 0 10px 0;" } });
   g.createEl("div", { text: title, attr: { style:
     "font-size: 0.85em; opacity: 0.6; margin-bottom: 5px;" } });
-  return g.createEl("div", { attr: { style:
-    "display: flex; flex-wrap: wrap; gap: 6px;" } });
+  return g;
+};
+const row = (parent, label) => {
+  const r = parent.createEl("div", { attr: { style:
+    "display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 3px 0;" } });
+  if (label) r.createEl("span", { text: label, attr: { style:
+    "font-size: 0.72em; opacity: 0.45; min-width: 78px; " +
+    "text-transform: uppercase; letter-spacing: 0.05em;" } });
+  return r;
 };
 
 const mk = (row, label, choice, color) => {
@@ -39,16 +46,20 @@ const mk = (row, label, choice, color) => {
   };
 };
 
-const practice = group("What did you practice today?");
-mk(practice, "＋ @@NAME_LC@@", "Log @@NAME_LC@@", "#4c9aff");
-mk(practice, "＋ @@NAME_MLFUND@@", "Log @@NAME_MLFUND@@", "#36b37e");
-mk(practice, "＋ @@NAME_MLCODE@@", "Log @@NAME_MLCODE@@", "#9f7fff");
-mk(practice, "＋ @@NAME_MLSYS@@", "Log @@NAME_MLSYS@@", "#ff991f");
-mk(practice, "＋ @@NAME_BQ@@", "Log @@NAME_BQ@@", "#ff7eb6");
+const practice = section("What did you practice today?");
+const coding = row(practice, "Coding");
+mk(coding, "＋ @@NAME_LC@@", "Log @@NAME_LC@@", "#4c9aff");
+mk(coding, "＋ @@NAME_MLCODE@@", "Log @@NAME_MLCODE@@", "#9f7fff");
+const knowledge = row(practice, "Knowledge");
+mk(knowledge, "＋ @@NAME_MLFUND@@", "Log @@NAME_MLFUND@@", "#36b37e");
+mk(knowledge, "＋ @@NAME_MLSYS@@", "Log @@NAME_MLSYS@@", "#ff991f");
+const behavioral = row(practice, "Behavioral");
+mk(behavioral, "＋ @@NAME_BQ@@", "Log @@NAME_BQ@@", "#ff7eb6");
 
-const jobs = group("Where did you apply today?");
-mk(jobs, "＋ Application", "Log Application", "#00b8d9");
-mk(jobs, "＋ Resume version", "Add Resume Version", "#8993a4");
+const jobs = section("Where did you apply today?");
+const jobsRow = row(jobs, "");
+mk(jobsRow, "＋ Application", "Log Application", "#00b8d9");
+mk(jobsRow, "＋ Resume version", "Add Resume Version", "#8993a4");
 ```
 
 > [!note]- How logging works
