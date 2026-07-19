@@ -176,7 +176,8 @@ def problem_key(text: str) -> str | None:
     return (m.group(1) or m.group(2)) if m else None
 
 
-def insert_entry(note_path: Path, cfg: dict, entry: str, vault: Path, date: dt.date) -> str:
+def insert_entry(note_path: Path, cfg: dict, entry: str, vault: Path, date: dt.date,
+                 dry_run: bool = False) -> str:
     heading = cfg["vault"]["prep_heading"]
     if note_path.exists():
         content = note_path.read_text(encoding="utf-8")
@@ -211,6 +212,8 @@ def insert_entry(note_path: Path, cfg: dict, entry: str, vault: Path, date: dt.d
     if insert_at == start and (start >= len(lines) or lines[start].strip() != ""):
         lines.insert(start, "")
         insert_at = start + 1
+    if dry_run:
+        return "written"  # would be written; nothing touched
     lines.insert(insert_at, entry)
 
     note_path.parent.mkdir(parents=True, exist_ok=True)
@@ -523,17 +526,23 @@ def cmd_sync_lc(args, cfg) -> None:
         q = qcache[slug]
         # topic intentionally absent — fill it in later with how you solved it
         entry = f"- LC #{q['num']} {q['title']} · {q['difficulty']} #{tag}"
+        result = insert_entry(daily_note_path(vault, cfg, date), cfg, entry, vault, date,
+                              dry_run=args.dry_run)
         if args.dry_run:
-            print(f"  would log {date.isoformat()}: {entry}")
+            if result == "duplicate":
+                print(f"  already logged {date.isoformat()}: LC #{q['num']} {q['title']}")
+                dups += 1
+            else:
+                print(f"  would log {date.isoformat()}: {entry}")
+                added += 1
             continue
-        result = insert_entry(daily_note_path(vault, cfg, date), cfg, entry, vault, date)
         if result == "duplicate":
             dups += 1
         else:
             added += 1
             print(f"  logged {date.isoformat()}: LC #{q['num']} {q['title']} · {q['difficulty']}")
     if args.dry_run:
-        print("Dry run — nothing written.")
+        print(f"Dry run — nothing written. Would add {added} new; {dups} already logged.")
     else:
         print(f"Sync done: {added} new, {dups} already logged"
               + (f", {skipped} skipped" if skipped else "")
