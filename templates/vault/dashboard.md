@@ -1,5 +1,6 @@
 ---
-tags: [interview-prep]
+tags:
+  - interview-prep
 ---
 
 # Interview Prep Dashboard
@@ -12,17 +13,21 @@ tags: [interview-prep]
 // stay readable in both light and dark themes.
 const wrap = dv.container.createEl("div");
 
+wrap.createEl("div", { text:
+  "Click a button to log an entry.",
+  attr: { style: "font-size: 0.8em; font-style: italic; color: #8a8a8a; margin: 0 0 6px 0;" } });
+
 const section = (title) => {
   const g = wrap.createEl("div", { attr: { style: "margin: 8px 0 10px 0;" } });
   g.createEl("div", { text: title, attr: { style:
-    "font-size: 0.85em; opacity: 0.6; margin-bottom: 5px;" } });
+    "font-size: 0.9em; font-weight: 600; color: var(--text-accent); margin-bottom: 5px;" } });
   return g;
 };
 const row = (parent, label) => {
   const r = parent.createEl("div", { attr: { style:
     "display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 3px 0;" } });
   if (label) r.createEl("span", { text: label, attr: { style:
-    "font-size: 0.72em; opacity: 0.45; min-width: 78px; " +
+    "font-size: 0.72em; color: var(--text-muted); min-width: 78px; " +
     "text-transform: uppercase; letter-spacing: 0.05em;" } });
   return r;
 };
