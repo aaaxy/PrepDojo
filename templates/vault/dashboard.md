@@ -455,7 +455,7 @@ function render() {
 
   // two ways to log, then the range chips on their own row
   dv.container.createEl("div", { text:
-    "Two ways to log: import your accepted LeetCode submissions from the last 7 days, or add a solve by hand.",
+    "Two ways to log: import your accepted LeetCode submissions (last 7 days, up to the 20 most recent), or add a solve by hand.",
     attr: { style: "font-size: 0.8em; font-style: italic; color: #8a8a8a; margin: 0 0 6px 0;" } });
   const bar = dv.container.createEl("div", { attr: { style:
     "display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 6px 0;" } });

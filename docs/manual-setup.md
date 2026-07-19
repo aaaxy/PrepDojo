@@ -33,7 +33,7 @@ Copy `templates/vault/dashboard.md` into your vault (e.g. as `Interview Prep Das
 
 Open the note in Reading view. Tables appear once you have logged entries.
 
-The **⟳ Import from LeetCode** button pulls your accepted submissions from the last 7 days (your LeetCode profile must be public). Leave `@@LC_USERNAME@@` as an empty string (`""`) if you don't want it.
+The **⟳ Import from LeetCode** button pulls your accepted submissions from the last 7 days, capped at the 20 most recent (a LeetCode API limit); your LeetCode profile must be public. Leave `@@LC_USERNAME@@` as an empty string (`""`) if you don't want it.
 
 ## 4. QuickAdd captures
 
