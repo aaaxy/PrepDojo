@@ -272,7 +272,7 @@ What an update can and cannot touch, as a rule: generated files that you haven't
 
 Three habits that keep updates smooth:
 
-1. Customize in the repo's `templates/`, not in the installed vault copies; treat vault files as build outputs. Same for QuickAdd: change its config via `config.toml` and redeploy rather than editing in QuickAdd's settings UI — UI edits make the file look hand-edited, and the next deploy will `.new` it instead of updating it.
+1. Customize in the repo's `templates/`, not in the installed vault copies; treat vault files as build outputs. QuickAdd's config is special: it's merged, not replaced — PrepDojo updates only its own choices (matched by ID) and leaves the plugin's settings and any choices you created yourself untouched. The flip side: edits you make to *PrepDojo's* choices in QuickAdd's settings UI are overwritten on the next deploy, so change those via `config.toml` instead.
 2. Config changes affect future entries only. If you rename a tag (say `lc` to `leetcode`), old entries still carry the old tag and drop off the dashboard until you find-and-replace them in your daily notes.
 3. After any update that touches the dashboard, reopen the dashboard note once — the running code in an open tab is the old version until the note re-renders.
 

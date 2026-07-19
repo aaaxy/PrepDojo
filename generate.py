@@ -350,9 +350,18 @@ def main() -> None:
             (DIST / "vault" / "scripts" / "prepdojo-add-resume-version.js",
              vault / "scripts" / "prepdojo-add-resume-version.js"),
             (DIST / "obsidian" / "daily-notes.json", vault / ".obsidian" / "daily-notes.json"),
-            (DIST / "obsidian" / "plugins" / "quickadd" / "data.json",
-             vault / ".obsidian" / "plugins" / "quickadd" / "data.json"),
         ]
+        def clean_stale_new(dst: Path) -> None:
+            """A .new copy is only meaningful while its original is unresolved;
+            once the original installs cleanly, the leftover is trash."""
+            stale = dst.with_name(dst.stem + ".new" + dst.suffix)
+            if stale.exists():
+                try:
+                    stale.unlink()
+                    print(f"  removed stale: {stale}")
+                except OSError:
+                    pass
+
         for src, dst in pairs:
             key = dst.relative_to(vault).as_posix()
             src_sum = checksum(src)
@@ -361,6 +370,7 @@ def main() -> None:
                 if dst_sum == src_sum:
                     print(f"  up to date: {dst}")
                     manifest[key] = src_sum
+                    clean_stale_new(dst)
                     continue
                 user_modified = manifest.get(key) is not None and manifest[key] != dst_sum
                 unknown_origin = manifest.get(key) is None
@@ -376,6 +386,49 @@ def main() -> None:
             shutil.copyfile(src, dst)
             manifest[key] = src_sum
             print(f"  installed {dst}")
+            clean_stale_new(dst)
+
+        # QuickAdd config: co-owned with the plugin (QuickAdd rewrites the
+        # file on every launch, adding its own bookkeeping), so byte-level
+        # tracking can't work. Merge semantically instead: PrepDojo owns
+        # exactly the choices carrying its stable IDs; everything else —
+        # plugin settings, the user's own choices — is left untouched.
+        qa_src = DIST / "obsidian" / "plugins" / "quickadd" / "data.json"
+        qa_dst = vault / ".obsidian" / "plugins" / "quickadd" / "data.json"
+        generated_qa = json.loads(qa_src.read_text(encoding="utf-8"))
+        if not qa_dst.exists():
+            qa_dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(qa_src, qa_dst)
+            print(f"  installed {qa_dst}")
+        else:
+            try:
+                current_qa = json.loads(qa_dst.read_text(encoding="utf-8"))
+                ours = {c["id"]: c for c in generated_qa["choices"]}
+                merged, seen = [], set()
+                for c in current_qa.get("choices", []):
+                    cid = c.get("id")
+                    if cid in ours:
+                        merged.append(ours[cid])
+                        seen.add(cid)
+                    else:
+                        merged.append(c)  # user's own choice: keep verbatim
+                merged += [c for cid, c in ours.items() if cid not in seen]
+                if merged == current_qa.get("choices"):
+                    print(f"  up to date: {qa_dst}")
+                else:
+                    current_qa["choices"] = merged
+                    qa_dst.write_text(
+                        json.dumps(current_qa, indent=2, ensure_ascii=False) + "\n",
+                        encoding="utf-8")
+                    print(f"  updated PrepDojo choices in: {qa_dst}")
+                clean_stale_new(qa_dst)
+            except (json.JSONDecodeError, KeyError):
+                new_path = qa_dst.with_name("data.new.json")
+                shutil.copyfile(qa_src, new_path)
+                print(f"  PRESERVED (could not parse): {qa_dst}")
+                print(f"    generated version written to: {new_path}")
+        # this file is merge-managed now; drop any stale byte-tracking entry
+        manifest.pop(".obsidian/plugins/quickadd/data.json", None)
 
         # Data files: create only if absent, never overwrite, never .new —
         # these hold the user's records, not generated content.
