@@ -63,6 +63,12 @@ tag = "bq"
 # ------------------------------------------------------------
 
 [leetcode]
+# LeetCode username for `prepdojo sync-lc` (pulls your accepted submissions
+# into daily notes; profile must be public). Leave commented to disable.
+# username = "your-leetcode-username"
+# Earliest date sync-lc will log entries for (avoids creating daily notes for
+# old solves). Unset = last 7 days. Use "all" to backfill everything.
+# sync_since = "2026-07-01"
 difficulties = ["Easy", "Medium", "Hard"]
 # Topic taxonomy. Keep these lowercase; finer divisions use "main - subtopic"
 # (e.g. "dp - knapsack") and the dashboard groups them under "dp".

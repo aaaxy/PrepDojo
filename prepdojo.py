@@ -425,6 +425,127 @@ def cmd_apps_stats(args, cfg) -> None:
         print(f"  {s}: {n}")
 
 
+# --- LeetCode sync (PRE-24) -----------------------------------------------
+# Uses LeetCode's public GraphQL endpoint (unofficial): recent accepted
+# submissions for a public profile. Objective facts only (number, title,
+# difficulty); the topic is left empty on purpose — it records how YOU solved
+# the problem, and a sync cannot know that.
+
+LEETCODE_GRAPHQL = "https://leetcode.com/graphql"
+
+
+def _lc_graphql(query: str, variables: dict) -> dict:
+    import json
+    import urllib.request
+    body = json.dumps({"query": query, "variables": variables}).encode()
+    req = urllib.request.Request(
+        LEETCODE_GRAPHQL, data=body,
+        headers={"Content-Type": "application/json",
+                 "Referer": "https://leetcode.com",
+                 "User-Agent": "Mozilla/5.0 (prepdojo)"})
+    with urllib.request.urlopen(req, timeout=15) as r:
+        import json as _j
+        payload = _j.load(r)
+    if "data" not in payload or payload["data"] is None:
+        raise RuntimeError(f"unexpected response: {str(payload)[:200]}")
+    return payload["data"]
+
+
+def fetch_recent_ac(username: str, limit: int) -> list[dict]:
+    data = _lc_graphql(
+        """query recentAc($username: String!, $limit: Int!) {
+             recentAcSubmissionList(username: $username, limit: $limit) {
+               title titleSlug timestamp } }""",
+        {"username": username, "limit": limit})
+    subs = data.get("recentAcSubmissionList")
+    if subs is None:
+        raise RuntimeError("no submission list — is the profile private or the username wrong?")
+    return subs
+
+
+def fetch_question(slug: str) -> dict:
+    data = _lc_graphql(
+        """query q($slug: String!) {
+             question(titleSlug: $slug) {
+               questionFrontendId title difficulty } }""",
+        {"slug": slug})
+    q = data.get("question")
+    if not q:
+        raise RuntimeError(f"question not found: {slug}")
+    return {"num": q["questionFrontendId"], "title": q["title"],
+            "difficulty": q["difficulty"]}
+
+
+def cmd_sync_lc(args, cfg) -> None:
+    vault = resolve_vault(args, cfg)
+    username = args.username or cfg.get("leetcode", {}).get("username", "")
+    if not username:
+        sys.exit("No LeetCode username. Add under [leetcode] in config.toml:\n"
+                 '    username = "your-leetcode-username"\n'
+                 "or pass --username.")
+    try:
+        recent = fetch_recent_ac(username, args.limit)
+    except Exception as e:
+        sys.exit(f"Could not fetch from LeetCode ({e}). Nothing was written.")
+    if not recent:
+        print("No recent accepted submissions found.")
+        return
+
+    # Sync window: don't resurrect ancient history as sparse daily notes.
+    # Priority: --since flag > [leetcode].sync_since in config > last 7 days.
+    since_spec = args.since or cfg.get("leetcode", {}).get("sync_since", "")
+    if since_spec == "all":
+        since = dt.date.min
+    elif since_spec:
+        try:
+            since = dt.date.fromisoformat(since_spec)
+        except ValueError:
+            sys.exit(f"Bad since date '{since_spec}' — use YYYY-MM-DD or 'all'.")
+    else:
+        since = dt.date.today() - dt.timedelta(days=7)
+
+    tag = cfg["categories"]["lc"]["tag"]
+    qcache: dict[str, dict] = {}
+    added, dups, skipped, too_old = 0, 0, 0, 0
+    for sub in recent:
+        date = dt.date.fromtimestamp(int(sub["timestamp"]))
+        if date < since:
+            too_old += 1
+            continue
+        slug = sub["titleSlug"]
+        if slug not in qcache:
+            try:
+                qcache[slug] = fetch_question(slug)
+            except Exception as e:
+                print(f"  skipped {slug}: {e}")
+                skipped += 1
+                continue
+        q = qcache[slug]
+        # topic intentionally absent — fill it in later with how you solved it
+        entry = f"- LC #{q['num']} {q['title']} · {q['difficulty']} #{tag}"
+        if args.dry_run:
+            print(f"  would log {date.isoformat()}: {entry}")
+            continue
+        result = insert_entry(daily_note_path(vault, cfg, date), cfg, entry, vault, date)
+        if result == "duplicate":
+            dups += 1
+        else:
+            added += 1
+            print(f"  logged {date.isoformat()}: LC #{q['num']} {q['title']} · {q['difficulty']}")
+    if args.dry_run:
+        print("Dry run — nothing written.")
+    else:
+        print(f"Sync done: {added} new, {dups} already logged"
+              + (f", {skipped} skipped" if skipped else "")
+              + (f", {too_old} older than {since.isoformat()} (ignored)" if too_old else "") + ".")
+        if too_old:
+            print("To include older solves: rerun with --since YYYY-MM-DD (or --since all),"
+                  " or set sync_since in config.toml.")
+        if added:
+            print("New entries have no topic yet — fill in how you solved them "
+                  "(dashboard shows them under 'Needs topic').")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="prepdojo", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -447,6 +568,13 @@ def main() -> None:
 
     p_topics = sub.add_parser("topics", help="list the LeetCode topic taxonomy")
     p_topics.set_defaults(func=cmd_topics)
+
+    p_sync = sub.add_parser("sync-lc", help="pull accepted LeetCode submissions into daily notes")
+    p_sync.add_argument("--username", default="", help="LeetCode username (or set [leetcode].username in config)")
+    p_sync.add_argument("--limit", type=int, default=20, help="how many recent submissions to check (max ~20)")
+    p_sync.add_argument("--since", default="", help="only sync solves on/after this date (YYYY-MM-DD, or 'all'); default: last 7 days")
+    p_sync.add_argument("--dry-run", action="store_true", help="show what would be logged without writing")
+    p_sync.set_defaults(func=cmd_sync_lc)
 
     p_apps = sub.add_parser("apps", help="job application tracking (CSV)")
     apps_sub = p_apps.add_subparsers(dest="apps_command", required=True)

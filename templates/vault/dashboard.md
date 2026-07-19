@@ -301,6 +301,15 @@ for (const p of dv.pages('"@@DAILY_NOTES_FOLDER@@"')) {
 }
 rows.sort((a, b) => b.day.localeCompare(a.day));
 
+// Needs topic: synced or hastily logged entries awaiting "how did I solve it"
+const untopiced = rows.filter(r => r.topic === "—");
+if (untopiced.length) {
+  dv.header(3, "Needs topic");
+  dv.paragraph("*Add how you solved these to the entry in its daily note.*");
+  dv.table(["Date", "Problem", "Difficulty"],
+    untopiced.map(r => [r.link, r.problem, r.diff]));
+}
+
 // By topic (groups by main topic; "dp - knapsack" counts under "dp")
 const byTopic = {};
 for (const r of rows) (byTopic[r.mainTopic] ??= []).push(r);
