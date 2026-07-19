@@ -124,10 +124,33 @@ function normDate(v) {
   return `${y}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`;
 }
 
+function quickActionButtons() {
+  // Buttons that fire the PrepDojo QuickAdd choices — same flows as the
+  // hotkey / command palette, one click from the dashboard.
+  const bar = dv.container.createEl("div",
+    { attr: { style: "margin: 4px 0 12px 0; display: flex; gap: 8px;" } });
+  const mk = (label, choice) => {
+    const b = bar.createEl("button", { text: label });
+    b.onclick = async () => {
+      const qa = app.plugins.plugins.quickadd;
+      if (!qa || !qa.api || !qa.api.executeChoice) {
+        new Notice("QuickAdd isn't available — is the plugin enabled?"); return;
+      }
+      try { await qa.api.executeChoice(choice); }
+      catch (e) {
+        new Notice("QuickAdd choice '" + choice + "' not found — deploy PrepDojo's QuickAdd config (see README → Updating).");
+      }
+    };
+  };
+  mk("＋ Log application", "Log Application");
+  mk("＋ Add resume version", "Add Resume Version");
+}
+
 async function render() {
   const apps = parseCSV(await app.vault.adapter.read(PATH));
   for (const r of apps) r["Applied Date"] = normDate(r["Applied Date"]);
   dv.container.innerHTML = "";
+  quickActionButtons();
   if (!apps.length) { dv.paragraph("*No applications logged yet.*"); return; }
   const now = dv.date("today");
   const weekAgo = now.minus({ days: 6 });

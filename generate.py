@@ -195,6 +195,23 @@ def build_quickadd(cfg: dict) -> dict:
             }],
         },
     })
+    choices.append({
+        "id": stable_id("resume-version-add"),
+        "name": "Add Resume Version",
+        "type": "Macro",
+        "command": True,
+        "runOnStartup": False,
+        "macro": {
+            "id": stable_id("resume-version-add-macro"),
+            "name": "Add Resume Version",
+            "commands": [{
+                "name": "prepdojo-add-resume-version",
+                "type": "UserScript",
+                "path": "scripts/prepdojo-add-resume-version.js",
+                "settings": {},
+            }],
+        },
+    })
     return {
         "choices": choices,
         "inputPrompt": "single-line",
@@ -271,9 +288,11 @@ def main() -> None:
     write(DIST / "vault" / apps_folder / "applications.csv", APPLICATIONS_HEADER)
     write(DIST / "vault" / apps_folder / "resume-versions.csv", RESUME_VERSIONS_HEADER)
 
-    # QuickAdd user script for in-Obsidian application logging
+    # QuickAdd user scripts for in-Obsidian logging
     app_script = render((TEMPLATES / "vault" / "log-application.js").read_text(encoding="utf-8"), rep)
     write(DIST / "vault" / "scripts" / "prepdojo-log-application.js", app_script)
+    ver_script = render((TEMPLATES / "vault" / "add-resume-version.js").read_text(encoding="utf-8"), rep)
+    write(DIST / "vault" / "scripts" / "prepdojo-add-resume-version.js", ver_script)
 
     # Obsidian config
     write(DIST / "obsidian" / "daily-notes.json", json.dumps({
@@ -328,6 +347,8 @@ def main() -> None:
             (DIST / "vault" / v["dashboard_path"], vault / v["dashboard_path"]),
             (DIST / "vault" / "scripts" / "prepdojo-log-application.js",
              vault / "scripts" / "prepdojo-log-application.js"),
+            (DIST / "vault" / "scripts" / "prepdojo-add-resume-version.js",
+             vault / "scripts" / "prepdojo-add-resume-version.js"),
             (DIST / "obsidian" / "daily-notes.json", vault / ".obsidian" / "daily-notes.json"),
             (DIST / "obsidian" / "plugins" / "quickadd" / "data.json",
              vault / ".obsidian" / "plugins" / "quickadd" / "data.json"),
