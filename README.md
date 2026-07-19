@@ -114,7 +114,7 @@ What this changes in your vault, so there are no surprises: it turns **Restricte
 python3 generate.py
 ```
 
-The first run creates your personal `config.toml` from the template; set `path` under `[vault]` in it to your vault's location, then rerun — it builds everything and installs it into the vault in one step (or pass `--install /path/to/YourVault` to override). Installs are edit-safe: files you've modified are never overwritten (the fresh version lands next to them as `*.new.md`; details in [Changing your configuration later](#changing-your-configuration-later)), and your data — daily notes, application CSVs — is never touched.
+The first run creates your personal `config.toml` from the template; set `path` under `[vault]` in it to your vault's location, then rerun — it builds everything and installs it into the vault in one step (or pass `--install /path/to/YourVault` to override). Installs are edit-safe: files you've modified are never overwritten (the fresh version lands next to them as `*.new.md`; details in [Updating](#updating)), and your data — daily notes, application CSVs — is never touched.
 
 **4. Restart Obsidian**, then two clicks of wiring: enable **JavaScript queries** in Dataview's settings, and assign hotkeys under Settings → Hotkeys → search "QuickAdd" (suggested: `Cmd/Ctrl+Shift+L` for LeetCode).
 
@@ -217,7 +217,7 @@ All configuration lives in `config.toml` (your personal copy of `config-template
 | `[leetcode]` | `topics`, `difficulties` | to adjust the topic taxonomy the dropdowns and dashboard grouping use |
 | `[applications]` | `folder` | where the job-application CSVs live in the vault; the installer creates empty starters there (never overwriting existing data) and the dashboard's Job Applications section reads them |
 
-After any change, rerun `python3 generate.py` (see [Changing your configuration later](#changing-your-configuration-later)).
+After any change, rerun `python3 generate.py` (see [Updating](#updating)).
 
 ## Logging
 
@@ -255,21 +255,26 @@ After any change, rerun `python3 generate.py` (see [Changing your configuration 
 - A short note can ride on the entry as a fourth segment (`... · dp · needed hints #lc`) and appears in the dashboard's Notes column. Longer notes go as indented sub-bullets under the entry; the dashboard ignores them on purpose.
 - Difficulty accepts `Easy/Medium/Hard`, `E/M/H`, or 🟢/🟡/🔴; the dashboard normalizes all of them.
 
-## Changing your configuration later
+## Updating
 
-Generation is a build step, not a one-time event. When you edit `config.toml` (new topic, renamed category, different hotkey), rerun:
+The same short ritual covers both kinds of update — pulling a new PrepDojo version, or changing your own `config.toml` / templates:
 
-```bash
-python3 generate.py
-```
+1. **Quit Obsidian.** QuickAdd keeps its settings in memory and writes them back on exit; deploying while it runs can silently undo the update.
+2. If updating PrepDojo itself: `git pull`.
+3. **Deploy:** `python3 generate.py` (it installs into the vault recorded in your config; pass `--install /path/to/AnotherVault` to target a different one).
+4. **Read the output.** `installed` and `up to date` mean done. `PRESERVED ... new version written to *.new` means you've hand-edited that file since it was installed — compare it with the `.new` copy and merge at your own pace, or rerun with `--force` to take the new version wholesale.
+5. **Restart Obsidian.** Config files are read at launch, so this is what makes the update live.
+6. Two things never update automatically:
+   - **Hotkeys** — Obsidian's `hotkeys.json` is shared with everything else, so PrepDojo never writes it. If the update added new QuickAdd choices, bind them in Settings → Hotkeys (or merge `dist/obsidian/hotkeys-snippet.json`).
+   - **The Claude skill** — it lives in your Claude profile, not the vault. If the update changed it, re-install `dist/claude-skill/lc-logger.skill`.
 
-(It installs into the vault recorded in your config — set up for you by `setup.py`. Pass `--install /path/to/AnotherVault` to target a different one.)
+What an update can and cannot touch, as a rule: generated files that you haven't edited (dashboard, daily-note template, QuickAdd config, logging script) update in place; anything you *have* edited is preserved with a `.new` beside it; your data — daily notes and application CSVs — is never written by the installer, under any flag.
 
-and restart Obsidian. Three things to know:
+Three habits that keep updates smooth:
 
-1. Customize in the repo's `templates/`, not in the installed vault copies; treat the vault files as build outputs. If you do edit a vault copy, the checksum manifest protects it (see above), and you merge from the `*.new.md` file at your own pace.
-2. Regenerate the QuickAdd config while Obsidian is closed. The plugin holds settings in memory and can write the old version back over your new file when it quits.
-3. Config changes affect future entries only. If you rename a tag (say `lc` to `leetcode`), old entries still carry the old tag and will drop off the dashboard until you find-and-replace them in your daily notes.
+1. Customize in the repo's `templates/`, not in the installed vault copies; treat vault files as build outputs. Same for QuickAdd: change its config via `config.toml` and redeploy rather than editing in QuickAdd's settings UI — UI edits make the file look hand-edited, and the next deploy will `.new` it instead of updating it.
+2. Config changes affect future entries only. If you rename a tag (say `lc` to `leetcode`), old entries still carry the old tag and drop off the dashboard until you find-and-replace them in your daily notes.
+3. After any update that touches the dashboard, reopen the dashboard note once — the running code in an open tab is the old version until the note re-renders.
 
 ## Repository layout
 
