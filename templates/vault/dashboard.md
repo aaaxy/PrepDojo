@@ -96,7 +96,8 @@ for (const p of dv.pages('"@@DAILY_NOTES_FOLDER@@"')) {
   }
 }
 
-// job applications count as activity too (combined "did anything" streak)
+// job applications: count for the streak and for their own Stats row
+let appsTotal = null, appsWeek = 0;
 try {
   const raw = await app.vault.adapter.read("@@APPLICATIONS_FOLDER@@/applications.csv");
   // one compact pass: collect the Applied Date column (col 8) respecting quotes
@@ -111,16 +112,22 @@ try {
     else if (c === ",") { row.push(cell); cell = ""; }
     else if (c === "\n" || c === "\r") {
       if (c === "\r" && raw[i + 1] === "\n") i++;
-      row.push(cell); if (row.length > 7 && row[7]) cells.push(row[7]); row = []; cell = "";
+      row.push(cell); if (row.length > 7) cells.push(row[7]); row = []; cell = "";
     } else cell += c;
   }
-  if (row.length > 7 && row[7]) cells.push(row[7]);
+  if (row.length > 7) cells.push(row[7]);
+  appsTotal = Math.max(0, cells.length - 1); // all rows; header excluded
   for (let v of cells.slice(1)) { // skip header
-    const m = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/.exec(v.trim());
+    v = (v || "").trim();
+    const m = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/.exec(v);
     if (m) v = `${m[3].length === 2 ? "20" + m[3] : m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(v.trim())) activeDays.add(v.trim());
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+      activeDays.add(v);
+      const d = dv.date(v);
+      if (d && d >= weekAgo && d <= now) appsWeek++;
+    }
   }
-} catch (e) { /* no applications.csv — prep-only streak */ }
+} catch (e) { /* no applications.csv — prep-only streak, no Applications row */ }
 
 // streak: consecutive days (ending today or yesterday) with ≥1 prep entry OR application
 let streak = 0;
@@ -128,8 +135,9 @@ let d = activeDays.has(now.toFormat("yyyy-MM-dd")) ? now : now.minus({ days: 1 }
 while (activeDays.has(d.toFormat("yyyy-MM-dd"))) { streak++; d = d.minus({ days: 1 }); }
 
 dv.paragraph(`**🔥 Streak: ${streak} day${streak === 1 ? "" : "s"}** (prep or applications) · Active days total: ${activeDays.size}`);
-dv.table(["Category", "Last 7 days", "All time"],
-  Object.keys(tags).map(t => [tags[t], week[t], total[t]]));
+const statRows = Object.keys(tags).map(t => [tags[t], week[t], total[t]]);
+if (appsTotal !== null) statRows.unshift(["Applications", appsWeek, appsTotal]);
+dv.table(["Category", "Last 7 days", "All time"], statRows);
 ```
 
 ## This week
