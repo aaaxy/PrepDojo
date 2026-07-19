@@ -279,59 +279,193 @@ const pollId = window.setInterval(async () => {
 ## @@NAME_LC@@
 
 ```dataviewjs
-const logged = i => !i.task || i.completed;
-const rows = [];
-for (const p of dv.pages('"@@DAILY_NOTES_FOLDER@@"')) {
-  for (const t of p.file.lists.filter(i => logged(i) && i.text.includes("#@@TAG_LC@@"))) {
-    const clean = t.text.replace(/#@@TAG_LC@@\b/g, "").replace(/^LC\s*/i, "")
-      .replace(/#\s+(\d)/, "#$1").replace(/^(\d+)\.?\s*/, "#$1 ").trim();
-    const parts = clean.split("·").map(s => s.trim());
-    const diffMap = { "🟢": "Easy", "🟡": "Medium", "🔴": "Hard",
-      "E": "Easy", "M": "Medium", "H": "Hard",
-      "easy": "Easy", "medium": "Medium", "hard": "Hard" };
-    const rawDiff = parts[1] || "—";
-    const fullTopic = (parts[2] || "—").toLowerCase();
-    rows.push({ day: p.file.name, link: p.file.link,
-      problem: parts[0] || "—",
-      diff: diffMap[rawDiff] ?? rawDiff,
-      topic: fullTopic,
-      mainTopic: fullTopic.split(" - ")[0].trim(),
-      notes: parts.slice(3).join(" · ") || "—" });
+// Range-filtered view of logged problems, with one-click import of recent
+// accepted submissions (same behavior as `prepdojo sync-lc`).
+const LC_USERNAME = "@@LC_USERNAME@@";
+let rangeDays = 7; // view state only — resets to the default when the note reopens
+
+async function lcRenderNewNote(d) {
+  const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const months = ["January","February","March","April","May","June","July",
+                  "August","September","October","November","December"];
+  const fmt = f => f.replace(/dddd/g, days[d.getDay()]).replace(/MMMM/g, months[d.getMonth()])
+    .replace(/YYYY/g, d.getFullYear()).replace(/MM/g, String(d.getMonth() + 1).padStart(2, "0"))
+    .replace(/DD/g, String(d.getDate()).padStart(2, "0")).replace(/\bD\b/g, d.getDate());
+  let t;
+  try { t = await app.vault.adapter.read("@@DAILY_NOTE_TEMPLATE@@"); }
+  catch (e) { t = "# {{date:dddd, MMMM D, YYYY}}\n\n@@PREP_HEADING@@\n"; }
+  return t.replace(/\{\{date:([^}]*)\}\}/g, (_, f) => fmt(f))
+          .replace(/\{\{date\}\}/g, iso);
+}
+
+async function lcInsertEntry(d, entry) {
+  const days2 = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const months2 = ["January","February","March","April","May","June","July",
+                   "August","September","October","November","December"];
+  const fname = "@@DATE_FORMAT@@".replace(/dddd/g, days2[d.getDay()])
+    .replace(/MMMM/g, months2[d.getMonth()]).replace(/YYYY/g, d.getFullYear())
+    .replace(/MM/g, String(d.getMonth() + 1).padStart(2, "0"))
+    .replace(/DD/g, String(d.getDate()).padStart(2, "0")).replace(/\bD\b/g, d.getDate());
+  const path = "@@DAILY_NOTES_FOLDER@@/" + fname + ".md";
+  const heading = "@@PREP_HEADING@@";
+  let content = (await app.vault.adapter.exists(path))
+    ? await app.vault.adapter.read(path) : await lcRenderNewNote(d);
+  const lines = content.split("\n");
+  let start = lines.indexOf(heading);
+  if (start === -1) { lines.push("", heading, ""); start = lines.indexOf(heading); }
+  start += 1;
+  let end = start;
+  const level = heading.split(" ")[0] + " ";
+  while (end < lines.length && !lines[end].startsWith(level)) end++;
+  const keyOf = s2 => { const m = /#\s*(\d+)|\b(\d+)\./.exec(s2); return m ? (m[1] || m[2]) : null; };
+  const key = keyOf(entry);
+  for (let i = start; i < end; i++) {
+    if (lines[i].trim() === entry.trim()) return "dup";
+    if (key && lines[i].includes("#@@TAG_LC@@") && keyOf(lines[i]) === key) return "dup";
+  }
+  let at = start;
+  for (let i = start; i < end; i++) if (lines[i].trim()) at = i + 1;
+  if (at === start && (start >= lines.length || lines[start].trim() !== "")) {
+    lines.splice(start, 0, ""); at = start + 1;
+  }
+  lines.splice(at, 0, entry);
+  await app.vault.adapter.write(path, lines.join("\n"));
+  return "new";
+}
+
+async function lcImport(btn) {
+  if (!LC_USERNAME) {
+    new Notice("Set username under [leetcode] in config.toml, then redeploy (see README → Updating).");
+    return;
+  }
+  const { requestUrl } = require("obsidian");
+  const gql = async (query, variables) => {
+    const r = await requestUrl({ url: "https://leetcode.com/graphql", method: "POST",
+      headers: { "Content-Type": "application/json", "Referer": "https://leetcode.com" },
+      body: JSON.stringify({ query, variables }), throw: false });
+    const dta = r.json && r.json.data;
+    if (!dta) throw new Error("unexpected LeetCode response");
+    return dta;
+  };
+  btn.disabled = true; const old = btn.textContent; btn.textContent = "Importing…";
+  try {
+    const recent = (await gql(
+      "query($u:String!,$l:Int!){recentAcSubmissionList(username:$u,limit:$l){title titleSlug timestamp}}",
+      { u: LC_USERNAME, l: 20 })).recentAcSubmissionList;
+    if (!recent) throw new Error("no submissions — private profile or wrong username?");
+    const since = new Date(); since.setDate(since.getDate() - 7); since.setHours(0, 0, 0, 0);
+    const qcache = {};
+    let added = 0, dups = 0;
+    for (const sub of recent) {
+      const d = new Date(parseInt(sub.timestamp) * 1000);
+      if (d < since) continue;
+      if (!qcache[sub.titleSlug]) {
+        qcache[sub.titleSlug] = (await gql(
+          "query($s:String!){question(titleSlug:$s){questionFrontendId title difficulty}}",
+          { s: sub.titleSlug })).question;
+      }
+      const q = qcache[sub.titleSlug];
+      if (!q) continue;
+      const entry = `- LC #${q.questionFrontendId} ${q.title} · ${q.difficulty} #@@TAG_LC@@`;
+      (await lcInsertEntry(d, entry)) === "dup" ? dups++ : added++;
+    }
+    new Notice(`LeetCode import: ${added} new, ${dups} already logged.`
+      + (added ? " New entries need topics." : ""));
+  } catch (e) {
+    new Notice("LeetCode import failed: " + e.message + " — nothing was changed.");
+  } finally {
+    btn.disabled = false; btn.textContent = old;
   }
 }
-rows.sort((a, b) => b.day.localeCompare(a.day));
 
-// Needs topic: synced or hastily logged entries awaiting "how did I solve it"
-const untopiced = rows.filter(r => r.topic === "—");
-if (untopiced.length) {
-  dv.header(3, "Needs topic");
-  dv.paragraph("*Add how you solved these to the entry in its daily note.*");
-  dv.table(["Date", "Problem", "Difficulty"],
-    untopiced.map(r => [r.link, r.problem, r.diff]));
+function render() {
+  dv.container.innerHTML = "";
+
+  // controls: import + range chips
+  const bar = dv.container.createEl("div", { attr: { style:
+    "display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 6px 0;" } });
+  const imp = bar.createEl("button", { text: "⟳ Import from LeetCode", attr: { style:
+    "border-left: 3px solid #4c9aff; background: #4c9aff1f; border-radius: 5px;" } });
+  imp.onclick = () => lcImport(imp);
+  bar.createEl("span", { attr: { style: "width: 10px;" } });
+  const ranges = [["7d", 7], ["30d", 30], ["90d", 90], ["All", null]];
+  for (const [label, days] of ranges) {
+    const active = days === rangeDays;
+    const chip = bar.createEl("button", { text: label, attr: { style:
+      "border-radius: 5px; padding: 2px 10px;"
+      + (active ? " background: var(--interactive-accent); color: var(--text-on-accent);" : "") } });
+    chip.onclick = () => { rangeDays = days; render(); };
+  }
+
+  // parse all logged problems
+  const logged = i => !i.task || i.completed;
+  const all = [];
+  for (const p of dv.pages('"@@DAILY_NOTES_FOLDER@@"')) {
+    for (const t of p.file.lists.filter(i => logged(i) && i.text.includes("#@@TAG_LC@@"))) {
+      const clean = t.text.replace(/#@@TAG_LC@@\b/g, "").replace(/^LC\s*/i, "")
+        .replace(/#\s+(\d)/, "#$1").replace(/^(\d+)\.?\s*/, "#$1 ").trim();
+      const parts = clean.split("·").map(s => s.trim());
+      const diffMap = { "🟢": "Easy", "🟡": "Medium", "🔴": "Hard",
+        "E": "Easy", "M": "Medium", "H": "Hard",
+        "easy": "Easy", "medium": "Medium", "hard": "Hard" };
+      const rawDiff = parts[1] || "—";
+      const fullTopic = (parts[2] || "—").toLowerCase();
+      all.push({ day: p.file.name, link: p.file.link,
+        problem: parts[0] || "—",
+        diff: diffMap[rawDiff] ?? rawDiff,
+        topic: fullTopic,
+        mainTopic: fullTopic.split(" - ")[0].trim(),
+        notes: parts.slice(3).join(" · ") || "—" });
+    }
+  }
+  all.sort((a, b) => b.day.localeCompare(a.day));
+
+  // range filter (the tables below); Needs topic stays all-time on purpose
+  const now = dv.date("today");
+  const cutoff = rangeDays === null ? null : now.minus({ days: rangeDays - 1 });
+  const rows = cutoff === null ? all
+    : all.filter(r => { const d = dv.date(r.day); return d && d >= cutoff && d <= now; });
+  const rangeText = rangeDays === null
+    ? `Showing all time · ${rows.length} solves`
+    : `Showing last ${rangeDays} days (${cutoff.toFormat("yyyy-MM-dd")} – ${now.toFormat("yyyy-MM-dd")}) · ${rows.length} solves`;
+  dv.container.createEl("div", { text: rangeText, attr: { style:
+    "font-size: 0.8em; font-style: italic; color: #8a8a8a; margin: 0 0 8px 0;" } });
+
+  // Needs topic: all-time todo list, unaffected by the range
+  const untopiced = all.filter(r => r.topic === "—");
+  if (untopiced.length) {
+    dv.header(3, "Needs topic");
+    dv.paragraph("*Add how you solved these to the entry in its daily note.*");
+    dv.table(["Date", "Problem", "Difficulty"],
+      untopiced.map(r => [r.link, r.problem, r.diff]));
+  }
+
+  // By topic (groups by main topic; "dp - knapsack" counts under "dp")
+  const byTopic = {};
+  for (const r of rows) (byTopic[r.mainTopic] ??= []).push(r);
+  dv.header(3, "By topic");
+  dv.table(["Topic", "Count", "Problems"],
+    Object.entries(byTopic)
+      .sort((a, b) => b[1].length - a[1].length)
+      .map(([topic, rs]) => [topic, rs.length, rs.map(r => r.problem).join(", ")]));
+
+  // By difficulty
+  const byDiff = {};
+  for (const r of rows) byDiff[r.diff] = (byDiff[r.diff] ?? 0) + 1;
+  dv.header(3, "By difficulty");
+  dv.table(["Difficulty", "Count"],
+    ["Easy", "Medium", "Hard"].filter(d => byDiff[d])
+      .map(d => [d, byDiff[d]])
+      .concat(Object.entries(byDiff).filter(([d]) => !["Easy", "Medium", "Hard"].includes(d))));
+
+  // Problems in range
+  dv.header(3, "Problems");
+  dv.table(["Date", "Problem", "Difficulty", "Topic", "Notes"],
+    rows.map(r => [r.link, r.problem, r.diff, r.topic, r.notes]));
 }
 
-// By topic (groups by main topic; "dp - knapsack" counts under "dp")
-const byTopic = {};
-for (const r of rows) (byTopic[r.mainTopic] ??= []).push(r);
-dv.header(3, "By topic");
-dv.table(["Topic", "Count", "Problems"],
-  Object.entries(byTopic)
-    .sort((a, b) => b[1].length - a[1].length)
-    .map(([topic, rs]) => [topic, rs.length, rs.map(r => r.problem).join(", ")]));
-
-// By difficulty
-const byDiff = {};
-for (const r of rows) byDiff[r.diff] = (byDiff[r.diff] ?? 0) + 1;
-dv.header(3, "By difficulty");
-dv.table(["Difficulty", "Count"],
-  ["Easy", "Medium", "Hard"].filter(d => byDiff[d])
-    .map(d => [d, byDiff[d]])
-    .concat(Object.entries(byDiff).filter(([d]) => !["Easy", "Medium", "Hard"].includes(d))));
-
-// Full list
-dv.header(3, "All problems");
-dv.table(["Date", "Problem", "Difficulty", "Topic", "Notes"],
-  rows.map(r => [r.link, r.problem, r.diff, r.topic, r.notes]));
+render();
 ```
 
 ## @@NAME_MLFUND@@

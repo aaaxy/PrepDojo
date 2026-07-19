@@ -106,6 +106,7 @@ def replacements(cfg: dict) -> dict:
         "@@TOPICS_INLINE@@": ", ".join(f"`{t}`" for t in lc["topics"]),
         "@@APPLICATIONS_FOLDER@@": cfg.get("applications", {}).get(
             "folder", "Career/Job Hunting/NG/Applications"),
+        "@@LC_USERNAME@@": cfg.get("leetcode", {}).get("username", ""),
     }
     for key in CATEGORY_KEYS:
         cat = cfg["categories"][key]
