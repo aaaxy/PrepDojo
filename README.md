@@ -1,60 +1,60 @@
 # PrepDojo 🥋
 
-*Show up daily. Log in seconds. Leave sharper.*
+*Show up daily. Log in a click. Leave sharper.*
 
 <!-- TODO hero image: the single strongest asset goes here, above the fold.
-     Best candidate: a short GIF of the full loop — hotkey → prompts → entry
-     appears → dashboard numbers tick up. Reuse docs/media/log-hotkey.gif or
-     record a dedicated docs/media/hero.gif, then uncomment:
-![Log in seconds, see it add up](docs/media/hero.gif)
+     Best candidate: a short GIF of the full loop — dashboard button → prompts →
+     entry appears → dashboard numbers tick up. Record as docs/media/hero.gif,
+     then uncomment:
+![Log in a click, see it add up](docs/media/hero.gif)
 -->
 
-Job hunting is a hundred small efforts a day: a LeetCode problem at breakfast, ML review at night, a batch of applications in between. Each one is forgettable — together, they're your entire preparation. PrepDojo makes sure none of it disappears. Log anything in seconds (one keyboard shortcut, or just tell an AI "did two sum today"), and open one page for the full picture whenever you need it: your streak, which topics are solid and which are shaky, how many applications went out this week, and which resume actually gets you interviews.
+Job hunting is a hundred small efforts a day: a LeetCode problem at breakfast, ML review at night, a batch of applications in between. Each one is forgettable — together, they're your entire preparation. PrepDojo makes sure none of it disappears, and everything happens on one dashboard page. Log anything with a single click (or just tell an AI "did two sum today"), and the same page shows the full picture the moment you need it: your streak, which topics are solid and which are shaky, how many applications went out this week, and which resume actually gets you interviews.
 
 Everything stays in plain files on your own computer — no account, no subscription, nothing to lose access to. Built on [Obsidian](https://obsidian.md), free and local-first.
 
 ## What you can do
 
-**Log a problem in two keystrokes.** Press a hotkey anywhere in Obsidian, pick the day and topic from dropdowns, done — the entry lands in the right daily note, correctly formatted, every time.
+🧩 **Import your LeetCode solves with one click.** Just crushed a few problems on LeetCode? Click ⟳ Import on the dashboard and your recent accepted submissions land in your daily notes.
 
-<!-- TODO gif: hotkey → QuickAdd prompts (day, name, difficulty, topic) → entry
-     appearing in the daily note. Save as docs/media/log-hotkey.gif, embed:
-![Logging with a hotkey](docs/media/log-hotkey.gif)
+<!-- TODO gif: ⟳ Import click → notice "2 new, 4 already logged" → Needs topic
+     rows → ＋ Topic picker. Save as docs/media/import-lc.gif, embed:
+![Import your LeetCode solves](docs/media/import-lc.gif)
 -->
 
-**Or just tell the AI.** Paste a LeetCode link into Claude, or say "did two sum today" — it identifies the problem, asks which approach you used, and writes the entry for you. "Log this for yesterday" works too.
+⚡ **Log any prep work with one click.** An application fired off, an ML concept reviewed at lunch, a mock interview survived: every kind of prep has its own button. Click, answer a prompt or two, logged.
 
-<!-- TODO screenshot: a Claude chat where a pasted LC link becomes a logged entry.
-     Save as docs/media/log-claude.png -->
+<!-- TODO gif: dashboard button → QuickAdd prompts (day, name, difficulty, topic)
+     → entry appearing in the daily note. Save as docs/media/log-click.gif, embed:
+![Logging with one click](docs/media/log-click.gif)
+-->
 
-**Open one page, see everything.** Your streak, problems by topic and by difficulty, ML topics flagged for re-review, and this week's application count — always current the moment you open it.
+📊 **One page shows it all.** Open the dashboard and today's story is already written: your streak burning, topics ranked from solid to shaky, applications moving through the pipeline. No assembly required at all.
 
 <!-- TODO screenshot (the money shot): the dashboard in Reading view showing the
      streak line + by-topic and by-difficulty tables. Save as docs/media/dashboard.png -->
 
-**Know which resume actually works.** Log each application with the resume version you used, and the dashboard computes interview rates per version — you're A/B testing your own resume with real data instead of guessing.
+📄 **A/B test your resume.** Stop guessing which resume works. Every application records the version you sent, and the dashboard turns that into interview rates per version.
 
 <!-- TODO screenshot: the "By resume version" table with rates.
      Save as docs/media/resume-rates.png -->
 
-> [!TIP]
-> **Not just interview prep.** The default setup tracks ML engineer interview prep (LeetCode, ML fundamentals, ML coding, system design, behavioral), but nothing is hardcoded — categories, tags, topics, folders, and hotkeys all live in `config.toml`, and everything is rebuilt from it. Rename the categories and the same machinery tracks language learning, fitness, or any daily practice.
+🤖 **Or let AI do the logging.** Too tired to click? Toss Claude a LeetCode link or mumble "did two sum today" and the entry writes itself.
 
+<!-- TODO screenshot: a Claude chat where a pasted LC link becomes a logged entry.
+     Save as docs/media/log-claude.png -->
 
 ## Requirements
 
-Two things on your machine, and you're ready:
 
-- **Obsidian** — ideally 1.12+, so setup can auto-install the three community plugins PrepDojo runs on ([Dataview](https://obsidian.md/plugins?id=dataview), [QuickAdd](https://obsidian.md/plugins?id=quickadd), [Calendar](https://obsidian.md/plugins?id=calendar)). Older versions work too; you add those three yourself in a few clicks ([how](#obsidian-older-than-112)).
+- **Obsidian**
 - **Python 3.9+** for the one-command setup. No Python at all? See [manual setup](docs/manual-setup.md).
 
 Optional: the Claude desktop app (Cowork) or Claude Code, if you want AI logging.
 
 ## Quick start
 
-The defaults work out of the box; you mostly just tell PrepDojo where your vault is. Two ways: one command, or the same steps by hand.
-
-### Fastest: one command (Obsidian 1.12+)
+### For Obsidian 1.12+:
 
 ```bash
 python3 setup.py
