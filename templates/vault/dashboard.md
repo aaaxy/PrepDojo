@@ -3,7 +3,7 @@ tags:
   - interview-prep
 ---
 
-# Interview Prep Dashboard
+# 🥋 PrepDojo · Interview Prep Dashboard
 
 ## ⚡ Log
 
@@ -836,3 +836,9 @@ for (const p of dv.pages('"@@DAILY_NOTES_FOLDER@@"')) {
 rows.sort((a, b) => b.day.localeCompare(a.day));
 dv.table(["Date", "Entry"], rows.map(r => [r.link, r.text]));
 ```
+
+<br>
+
+---
+
+<p style="font-size: 0.8em; font-style: italic; color: #8a8a8a;">Powered by <a href="https://github.com/aaaxy/PrepDojo">PrepDojo</a>, free and open source. If it helps your grind, a ⭐ on GitHub helps others find it.</p>
