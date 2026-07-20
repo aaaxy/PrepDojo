@@ -58,7 +58,7 @@ MLSYS_DEFAULT_SOURCES = ["question", "blog", "video", "course", "paper", "projec
 APPLICATIONS_HEADER = ("Company,Position Title,Req ID,Job Link,Location,Remote?,"
                        "Comp Range,Applied Date,Resume Version,Cover Letter,Referral,"
                        "Status,Stage History,Last Update,Next Action,"
-                       "Recruiter / Contact,Notes\n")
+                       "Recruiter / Contact,Notes,Follow-up Date\n")
 RESUME_VERSIONS_HEADER = ("Version ID,Short Description,Emphasis / Angle,"
                           "Target Role Type,File Path,Date Last Updated,Notes\n")
 

@@ -83,7 +83,7 @@ The 💼 Job Applications section reads two CSVs. Skip this step and the section
 1. In your `@@APPLICATIONS_FOLDER@@` folder, create `applications.csv` and `resume-versions.csv` with these header rows:
 
 ```
-Company,Position Title,Req ID,Job Link,Location,Remote?,Comp Range,Applied Date,Resume Version,Cover Letter,Referral,Status,Stage History,Last Update,Next Action,Recruiter / Contact,Notes
+Company,Position Title,Req ID,Job Link,Location,Remote?,Comp Range,Applied Date,Resume Version,Cover Letter,Referral,Status,Stage History,Last Update,Next Action,Recruiter / Contact,Notes,Follow-up Date
 ```
 
 ```

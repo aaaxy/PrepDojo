@@ -353,13 +353,32 @@ async function render() {
   dv.container.createEl("div", { text: rangeText, attr: { style:
     "font-size: 0.8em; font-style: italic; color: #8a8a8a; margin: 0 0 8px 0;" } });
 
-  // pipeline: count by current status
+  // Offers and In interviews reflect current state, so they read all
+  // applications regardless of the date-range chips above.
+  const offers = apps.filter(r => (r["Status"] || "").trim().toLowerCase() === "offer");
+  if (offers.length) {
+    dv.header(3, "Offers 🎉");
+    dv.table(["Company", "Position", "Location", "Salary", "Until"],
+      offers.map(r => [r["Company"], r["Position Title"], r["Location"] || "—",
+        r["Comp Range"] || "—", r["Follow-up Date"] || "—"]));
+  }
+
+  const INTERVIEWING = ["OA", "Phone Screen", "Onsite", "Team Match"];
+  const inInterviews = apps.filter(r => INTERVIEWING.includes((r["Status"] || "").trim()));
+  if (inInterviews.length) {
+    dv.header(3, "In interviews");
+    dv.table(["Company", "Position", "Stage", "Last update", "Follow-up"],
+      inInterviews.map(r => [r["Company"], r["Position Title"], r["Status"],
+        r["Last Update"] || "—", r["Follow-up Date"] || "—"]));
+  }
+
+  // pipeline: count by current status. Active = interviewing or awaiting
+  // results; a plain submitted application doesn't count.
   const byStatus = {};
   for (const r of rows) byStatus[r["Status"] || "—"] = (byStatus[r["Status"] || "—"] ?? 0) + 1;
-  const active = ["Applied", "OA", "Phone Screen", "Onsite", "Team Match"]
-    .reduce((s, k) => s + (byStatus[k] ?? 0), 0);
+  const active = INTERVIEWING.reduce((s, k) => s + (byStatus[k] ?? 0), 0);
   dv.header(3, "Pipeline");
-  dv.paragraph(`Active (in pipeline): **${active}**`);
+  dv.paragraph(`Active (interviewing or awaiting results): **${active}**`);
   dv.table(["Status", "Count"],
     Object.entries(byStatus).sort((a, b) => b[1] - a[1]));
 
