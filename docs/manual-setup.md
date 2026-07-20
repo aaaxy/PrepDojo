@@ -64,11 +64,7 @@ ML coding:
 - {{VALUE:What did you implement?}} #mlcode
 ```
 
-System design:
-
-```
-- {{VALUE:Design question or case}} #mlsys
-```
+System design uses a guided macro instead of a capture (it has optional topic/source/link/notes fields that a capture format can't skip cleanly): copy `templates/vault/log-mlsys.js` into your vault's `scripts/` folder (replacing its placeholders), then add a **Macro** choice named exactly `Log ML System Design` running that script — same procedure as the job-application scripts in step 5.
 
 Behavioral:
 

@@ -65,6 +65,45 @@ const jobs = section("Where did you apply today?");
 const jobsRow = row(jobs, "");
 mk(jobsRow, "＋ Application", "Log Application", "#00b8d9");
 mk(jobsRow, "＋ Resume version", "Add Resume Version", "#8993a4");
+
+// Floating back-to-top button, pinned to the viewport's bottom right while
+// this note is the active file. Lives on document.body; the scroll container
+// is captured now, because Obsidian unloads off-screen sections (including
+// this block) as you scroll, so it can't be looked up at click time.
+let scroller = dv.container;
+while (scroller && !(scroller.scrollHeight > scroller.clientHeight + 10 &&
+  ["auto", "scroll"].includes(getComputedStyle(scroller).overflowY)))
+  scroller = scroller.parentElement;
+const notePath = dv.current().file.path;
+
+document.getElementById("prepdojo-top")?.remove();
+if (window.prepdojoTopWatch) window.clearInterval(window.prepdojoTopWatch);
+const topBtn = document.createElement("button");
+topBtn.id = "prepdojo-top";
+topBtn.textContent = "↑ Top";
+topBtn.setAttribute("style",
+  "position: fixed; right: 24px; bottom: 24px; z-index: 999; " +
+  "border-radius: 16px; padding: 6px 14px; cursor: pointer; " +
+  "border: 1px solid var(--background-modifier-border); " +
+  "border-left: 3px solid var(--interactive-accent); " +
+  "background: var(--background-secondary); color: var(--text-normal); " +
+  "box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); display: none;");
+topBtn.onclick = () => {
+  const el = (scroller && scroller.isConnected) ? scroller
+    : app.workspace.activeLeaf?.view?.contentEl
+        ?.querySelector(".markdown-preview-view, .cm-scroller");
+  el?.scrollTo({ top: 0, behavior: "smooth" });
+};
+document.body.appendChild(topBtn);
+// visible only while the dashboard is the active file; survives scrolling
+window.prepdojoTopWatch = window.setInterval(() => {
+  const active = app.workspace.getActiveFile();
+  const here = active && active.path === notePath;
+  topBtn.style.display = here ? "" : "none";
+  if (!here && !app.workspace.getLeavesOfType("markdown").length) {
+    topBtn.remove(); window.clearInterval(window.prepdojoTopWatch);
+  }
+}, 1000);
 ```
 
 <br>
@@ -142,8 +181,18 @@ async function render() {
   while (activeDays.has(d.toFormat("yyyy-MM-dd"))) { streak++; d = d.minus({ days: 1 }); }
 
   dv.paragraph(`**🔥 Streak: ${streak} day${streak === 1 ? "" : "s"}** (prep or applications) · Active days total: ${activeDays.size}`);
-  const statRows = Object.keys(tags).map(t => [tags[t], week[t], total[t]]);
-  if (appsTotal !== null) statRows.unshift(["Applications", appsWeek, appsTotal]);
+  // category cell links to its section (heading text must match, emoji included)
+  const sections = {
+    "#@@TAG_LC@@": "🧩 @@NAME_LC@@",
+    "#@@TAG_MLFUND@@": "📚 @@NAME_MLFUND@@",
+    "#@@TAG_MLCODE@@": "⚙️ @@NAME_MLCODE@@ & @@NAME_MLSYS@@",
+    "#@@TAG_MLSYS@@": "⚙️ @@NAME_MLCODE@@ & @@NAME_MLSYS@@",
+    "#@@TAG_BQ@@": "💬 @@NAME_BQ@@",
+  };
+  const statRows = Object.keys(tags).map(t =>
+    ["[[#" + sections[t] + "|" + tags[t] + "]]", week[t], total[t]]);
+  if (appsTotal !== null)
+    statRows.unshift(["[[#💼 Job Applications|Applications]]", appsWeek, appsTotal]);
   dv.table(["Category", "Last 7 days", "All time"], statRows);
 }
 
@@ -628,16 +677,33 @@ dv.table(["Date", "Topic", "Confidence"], rows.map(r => [r.link, r.topic, r.conf
 ## ⚙️ @@NAME_MLCODE@@ & @@NAME_MLSYS@@
 
 ```dataviewjs
+// Design entries carry optional structured fields (· separated, any omitted):
+// what · topic · source · link · notes. Fields are told apart without labels:
+// sources are a closed list, links start with http, first leftover = topic.
+const SOURCES = @@MLSYS_SOURCES_JSON@@.map(x => x.toLowerCase());
 const logged = i => !i.task || i.completed;
 const rows = [];
 for (const p of dv.pages('"@@DAILY_NOTES_FOLDER@@"')) {
-  for (const i of p.file.lists.filter(i => logged(i) && (i.text.includes("#@@TAG_MLCODE@@") || i.text.includes("#@@TAG_MLSYS@@"))))
+  for (const i of p.file.lists.filter(i => logged(i) && (i.text.includes("#@@TAG_MLCODE@@") || i.text.includes("#@@TAG_MLSYS@@")))) {
+    const text = i.text.replace(/#@@TAG_MLCODE@@\b/g, "").replace(/#@@TAG_MLSYS@@\b/g, "").trim();
+    const parts = text.split("·").map(x => x.trim()).filter(Boolean);
+    let topic = "", source = "", link = "", notes = [];
+    for (const q of parts.slice(1)) {
+      if (!source && SOURCES.includes(q.toLowerCase())) source = q.toLowerCase();
+      else if (!link && /^https?:\/\//.test(q)) link = q;
+      else if (!topic) topic = q;
+      else notes.push(q);
+    }
     rows.push({ day: p.file.name, link: p.file.link,
       type: i.text.includes("#@@TAG_MLCODE@@") ? "coding" : "design",
-      text: i.text.replace(/#@@TAG_MLCODE@@\b/g, "").replace(/#@@TAG_MLSYS@@\b/g, "").trim() });
+      what: parts[0] || "—", topic: topic || "—", source: source || "—",
+      url: link ? "[link](" + link + ")" : "—",
+      notes: notes.length ? notes.join(" · ") : "—" });
+  }
 }
 rows.sort((a, b) => b.day.localeCompare(a.day));
-dv.table(["Date", "Type", "Entry"], rows.map(r => [r.link, r.type, r.text]));
+dv.table(["Date", "Type", "Entry", "Topic", "Source", "Link", "Notes"],
+  rows.map(r => [r.link, r.type, r.what, r.topic, r.source, r.url, r.notes]));
 ```
 
 <br>

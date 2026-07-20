@@ -53,6 +53,8 @@ tag = "mlcode"
 [categories.mlsys]
 name = "ML System Design"
 tag = "mlsys"
+# Source types offered when logging (what kind of material it was).
+# sources = ["question", "blog", "video", "course", "paper", "project", "other"]
 
 [categories.bq]
 name = "Behavioral"

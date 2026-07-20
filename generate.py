@@ -49,6 +49,10 @@ DIST = ROOT / "dist"
 
 CATEGORY_KEYS = ["lc", "mlfund", "mlcode", "mlsys", "bq"]
 
+# Source types for the guided ML system design flow; override with
+# `sources = [...]` under [categories.mlsys] in config.toml.
+MLSYS_DEFAULT_SOURCES = ["question", "blog", "video", "course", "paper", "project", "other"]
+
 # Starter headers for the job-application CSVs (kept in sync with prepdojo.py
 # and the dashboard's Job Applications section).
 APPLICATIONS_HEADER = ("Company,Position Title,Req ID,Job Link,Location,Remote?,"
@@ -63,7 +67,6 @@ CAPTURE_FORMATS = {
     "lc": "- LC {{VALUE:Problem name (e.g. #200 Number of Islands)}} · {{VALUE:@DIFFS@}} · {{VALUE:@TOPICS@}} #@TAG@\n",
     "mlfund": "- {{VALUE:Topic reviewed}} · {{VALUE:\U0001f7e2,\U0001f7e1,\U0001f534}} #@TAG@\n",
     "mlcode": "- {{VALUE:What did you implement?}} #@TAG@\n",
-    "mlsys": "- {{VALUE:Design question or case}} #@TAG@\n",
     "bq": "- {{VALUE:Story or question practiced}} #@TAG@\n",
 }
 
@@ -107,6 +110,8 @@ def replacements(cfg: dict) -> dict:
         "@@APPLICATIONS_FOLDER@@": cfg.get("applications", {}).get(
             "folder", "Career/Job Hunting/NG/Applications"),
         "@@LC_USERNAME@@": cfg.get("leetcode", {}).get("username", ""),
+        "@@MLSYS_SOURCES_JSON@@": json.dumps(
+            cfg["categories"]["mlsys"].get("sources", MLSYS_DEFAULT_SOURCES)),
     }
     for key in CATEGORY_KEYS:
         cat = cfg["categories"][key]
@@ -133,6 +138,26 @@ def build_quickadd(cfg: dict) -> dict:
     choices = []
     for key in CATEGORY_KEYS:
         cat = cfg["categories"][key]
+        if key == "mlsys":
+            # Guided macro flow (topic/source/link/notes) — see log-mlsys.js
+            choices.append({
+                "id": stable_id(key),
+                "name": f"Log {cat['name']}",
+                "type": "Macro",
+                "command": True,
+                "runOnStartup": False,
+                "macro": {
+                    "id": stable_id("mlsys-macro"),
+                    "name": f"Log {cat['name']}",
+                    "commands": [{
+                        "name": "prepdojo-log-mlsys",
+                        "type": "UserScript",
+                        "path": "scripts/prepdojo-log-mlsys.js",
+                        "settings": {},
+                    }],
+                },
+            })
+            continue
         fmt = (
             CAPTURE_FORMATS[key]
             .replace("@DIFFS@", ",".join(lc["difficulties"]))
@@ -294,6 +319,8 @@ def main() -> None:
     write(DIST / "vault" / "scripts" / "prepdojo-log-application.js", app_script)
     ver_script = render((TEMPLATES / "vault" / "add-resume-version.js").read_text(encoding="utf-8"), rep)
     write(DIST / "vault" / "scripts" / "prepdojo-add-resume-version.js", ver_script)
+    mlsys_script = render((TEMPLATES / "vault" / "log-mlsys.js").read_text(encoding="utf-8"), rep)
+    write(DIST / "vault" / "scripts" / "prepdojo-log-mlsys.js", mlsys_script)
 
     # Obsidian config
     write(DIST / "obsidian" / "daily-notes.json", json.dumps({
@@ -350,6 +377,8 @@ def main() -> None:
              vault / "scripts" / "prepdojo-log-application.js"),
             (DIST / "vault" / "scripts" / "prepdojo-add-resume-version.js",
              vault / "scripts" / "prepdojo-add-resume-version.js"),
+            (DIST / "vault" / "scripts" / "prepdojo-log-mlsys.js",
+             vault / "scripts" / "prepdojo-log-mlsys.js"),
             (DIST / "obsidian" / "daily-notes.json", vault / ".obsidian" / "daily-notes.json"),
         ]
         def clean_stale_new(dst: Path) -> None:
