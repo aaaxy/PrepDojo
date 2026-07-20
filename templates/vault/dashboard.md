@@ -74,70 +74,91 @@ mk(jobsRow, "＋ Resume version", "Add Resume Version", "#8993a4");
 ## 📊 Stats
 
 ```dataviewjs
-const tags = {"#@@TAG_LC@@": "@@NAME_LC@@", "#@@TAG_MLFUND@@": "@@NAME_MLFUND@@", "#@@TAG_MLCODE@@": "@@NAME_MLCODE@@", "#@@TAG_MLSYS@@": "@@NAME_MLSYS@@", "#@@TAG_BQ@@": "@@NAME_BQ@@"};
-const logged = i => !i.task || i.completed; // plain bullet, or checked task (legacy)
-const now = dv.date("today");
-const weekAgo = now.minus({ days: 6 });
+// Recomputes when the note renders AND when applications.csv changes on disk
+// (CSV edits don't touch Dataview's index, so without polling the streak and
+// Applications row would go stale while the note is open).
+const CSV_PATH = "@@APPLICATIONS_FOLDER@@/applications.csv";
 
-let total = {}, week = {}, activeDays = new Set();
-for (const t in tags) { total[t] = 0; week[t] = 0; }
+async function render() {
+  dv.container.innerHTML = "";
+  const tags = {"#@@TAG_LC@@": "@@NAME_LC@@", "#@@TAG_MLFUND@@": "@@NAME_MLFUND@@", "#@@TAG_MLCODE@@": "@@NAME_MLCODE@@", "#@@TAG_MLSYS@@": "@@NAME_MLSYS@@", "#@@TAG_BQ@@": "@@NAME_BQ@@"};
+  const logged = i => !i.task || i.completed; // plain bullet, or checked task (legacy)
+  const now = dv.date("today");
+  const weekAgo = now.minus({ days: 6 });
 
-for (const p of dv.pages('"@@DAILY_NOTES_FOLDER@@"')) {
-  const day = dv.date(p.file.name);
-  if (!day) continue;
-  for (const item of p.file.lists.filter(logged)) {
-    for (const t in tags) {
-      if (item.text.includes(t)) {
-        total[t]++;
-        activeDays.add(p.file.name);
-        if (day >= weekAgo && day <= now) week[t]++;
+  let total = {}, week = {}, activeDays = new Set();
+  for (const t in tags) { total[t] = 0; week[t] = 0; }
+
+  for (const p of dv.pages('"@@DAILY_NOTES_FOLDER@@"')) {
+    const day = dv.date(p.file.name);
+    if (!day) continue;
+    for (const item of p.file.lists.filter(logged)) {
+      for (const t in tags) {
+        if (item.text.includes(t)) {
+          total[t]++;
+          activeDays.add(p.file.name);
+          if (day >= weekAgo && day <= now) week[t]++;
+        }
       }
     }
   }
+
+  // job applications: count for the streak and for their own Stats row
+  let appsTotal = null, appsWeek = 0;
+  try {
+    const raw = await app.vault.adapter.read("@@APPLICATIONS_FOLDER@@/applications.csv");
+    // one compact pass: collect the Applied Date column (col 8) respecting quotes
+    const cells = []; let row = [], cell = "", inQ = false;
+    for (let i = 0; i < raw.length; i++) {
+      const c = raw[i];
+      if (inQ) {
+        if (c === '"' && raw[i + 1] === '"') { cell += '"'; i++; }
+        else if (c === '"') inQ = false;
+        else cell += c;
+      } else if (c === '"') inQ = true;
+      else if (c === ",") { row.push(cell); cell = ""; }
+      else if (c === "\n" || c === "\r") {
+        if (c === "\r" && raw[i + 1] === "\n") i++;
+        row.push(cell); if (row.length > 7) cells.push(row[7]); row = []; cell = "";
+      } else cell += c;
+    }
+    if (row.length > 7) cells.push(row[7]);
+    appsTotal = Math.max(0, cells.length - 1); // all rows; header excluded
+    for (let v of cells.slice(1)) { // skip header
+      v = (v || "").trim();
+      const m = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/.exec(v);
+      if (m) v = `${m[3].length === 2 ? "20" + m[3] : m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+        activeDays.add(v);
+        const d = dv.date(v);
+        if (d && d >= weekAgo && d <= now) appsWeek++;
+      }
+    }
+  } catch (e) { /* no applications.csv — prep-only streak, no Applications row */ }
+
+  // streak: consecutive days (ending today or yesterday) with ≥1 prep entry OR application
+  let streak = 0;
+  let d = activeDays.has(now.toFormat("yyyy-MM-dd")) ? now : now.minus({ days: 1 });
+  while (activeDays.has(d.toFormat("yyyy-MM-dd"))) { streak++; d = d.minus({ days: 1 }); }
+
+  dv.paragraph(`**🔥 Streak: ${streak} day${streak === 1 ? "" : "s"}** (prep or applications) · Active days total: ${activeDays.size}`);
+  const statRows = Object.keys(tags).map(t => [tags[t], week[t], total[t]]);
+  if (appsTotal !== null) statRows.unshift(["Applications", appsWeek, appsTotal]);
+  dv.table(["Category", "Last 7 days", "All time"], statRows);
 }
 
-// job applications: count for the streak and for their own Stats row
-let appsTotal = null, appsWeek = 0;
-try {
-  const raw = await app.vault.adapter.read("@@APPLICATIONS_FOLDER@@/applications.csv");
-  // one compact pass: collect the Applied Date column (col 8) respecting quotes
-  const cells = []; let row = [], cell = "", inQ = false;
-  for (let i = 0; i < raw.length; i++) {
-    const c = raw[i];
-    if (inQ) {
-      if (c === '"' && raw[i + 1] === '"') { cell += '"'; i++; }
-      else if (c === '"') inQ = false;
-      else cell += c;
-    } else if (c === '"') inQ = true;
-    else if (c === ",") { row.push(cell); cell = ""; }
-    else if (c === "\n" || c === "\r") {
-      if (c === "\r" && raw[i + 1] === "\n") i++;
-      row.push(cell); if (row.length > 7) cells.push(row[7]); row = []; cell = "";
-    } else cell += c;
-  }
-  if (row.length > 7) cells.push(row[7]);
-  appsTotal = Math.max(0, cells.length - 1); // all rows; header excluded
-  for (let v of cells.slice(1)) { // skip header
-    v = (v || "").trim();
-    const m = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/.exec(v);
-    if (m) v = `${m[3].length === 2 ? "20" + m[3] : m[3]}-${m[1].padStart(2, "0")}-${m[2].padStart(2, "0")}`;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
-      activeDays.add(v);
-      const d = dv.date(v);
-      if (d && d >= weekAgo && d <= now) appsWeek++;
-    }
-  }
-} catch (e) { /* no applications.csv — prep-only streak, no Applications row */ }
-
-// streak: consecutive days (ending today or yesterday) with ≥1 prep entry OR application
-let streak = 0;
-let d = activeDays.has(now.toFormat("yyyy-MM-dd")) ? now : now.minus({ days: 1 });
-while (activeDays.has(d.toFormat("yyyy-MM-dd"))) { streak++; d = d.minus({ days: 1 }); }
-
-dv.paragraph(`**🔥 Streak: ${streak} day${streak === 1 ? "" : "s"}** (prep or applications) · Active days total: ${activeDays.size}`);
-const statRows = Object.keys(tags).map(t => [tags[t], week[t], total[t]]);
-if (appsTotal !== null) statRows.unshift(["Applications", appsWeek, appsTotal]);
-dv.table(["Category", "Last 7 days", "All time"], statRows);
+let lastMtime = -1;
+async function tick() {
+  let m = 0;
+  try { const st = await app.vault.adapter.stat(CSV_PATH); m = st ? st.mtime : 0; }
+  catch (e) { /* no CSV; render once with m = 0 */ }
+  if (m !== lastMtime) { lastMtime = m; await render(); }
+}
+await tick();
+const pollId = window.setInterval(async () => {
+  if (!dv.container.isConnected) { window.clearInterval(pollId); return; }
+  try { await tick(); } catch (e) { /* file mid-write; retry next tick */ }
+}, 3000);
 ```
 
 <br>
