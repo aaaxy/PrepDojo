@@ -117,6 +117,7 @@ window.prepdojoTopWatch = window.setInterval(() => {
 // (CSV edits don't touch Dataview's index, so without polling the streak and
 // Applications row would go stale while the note is open).
 const CSV_PATH = "@@APPLICATIONS_FOLDER@@/applications.csv";
+let sortKey = null, sortDir = -1; // view state; Default = fixed category order
 
 async function render() {
   dv.container.innerHTML = "";
@@ -185,15 +186,41 @@ async function render() {
   const sections = {
     "#@@TAG_LC@@": "🧩 @@NAME_LC@@",
     "#@@TAG_MLFUND@@": "📚 @@NAME_MLFUND@@",
-    "#@@TAG_MLCODE@@": "⚙️ @@NAME_MLCODE@@ & @@NAME_MLSYS@@",
-    "#@@TAG_MLSYS@@": "⚙️ @@NAME_MLCODE@@ & @@NAME_MLSYS@@",
+    "#@@TAG_MLCODE@@": "🛠️ @@NAME_MLCODE@@",
+    "#@@TAG_MLSYS@@": "⚙️ @@NAME_MLSYS@@",
     "#@@TAG_BQ@@": "💬 @@NAME_BQ@@",
   };
-  const statRows = Object.keys(tags).map(t =>
-    ["[[#" + sections[t] + "|" + tags[t] + "]]", week[t], total[t]]);
+  const statRows = Object.keys(tags).map(t => ({
+    name: tags[t], cell: "[[#" + sections[t] + "|" + tags[t] + "]]",
+    week: week[t], total: total[t] }));
   if (appsTotal !== null)
-    statRows.unshift(["[[#💼 Job Applications|Applications]]", appsWeek, appsTotal]);
-  dv.table(["Category", "Last 7 days", "All time"], statRows);
+    statRows.unshift({ name: "Applications",
+      cell: "[[#💼 Job Applications|Applications]]", week: appsWeek, total: appsTotal });
+
+  // sort chips: Default keeps the fixed order; numeric sorts start descending,
+  // clicking the active chip again flips direction
+  const sortBar = dv.container.createEl("div", { attr: { style:
+    "display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0;" } });
+  sortBar.createEl("span", { text: "Sort:", attr: { style:
+    "font-size: 0.72em; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;" } });
+  for (const [label, key] of [["Default", null], ["Category", "name"],
+                              ["Last 7 days", "week"], ["All time", "total"]]) {
+    const active = key === sortKey;
+    const arrow = active && key !== null ? (sortDir === 1 ? " ↑" : " ↓") : "";
+    const chip = sortBar.createEl("button", { text: label + arrow, attr: { style:
+      "border-radius: 5px; padding: 2px 10px;"
+      + (active ? " background: var(--interactive-accent); color: var(--text-on-accent);" : "") } });
+    chip.onclick = () => {
+      if (sortKey === key && key !== null) sortDir = -sortDir;
+      else { sortKey = key; sortDir = key === "name" ? 1 : -1; }
+      render();
+    };
+  }
+  const sorted = [...statRows];
+  if (sortKey) sorted.sort((a, b) =>
+    sortKey === "name" ? sortDir * a.name.localeCompare(b.name)
+                       : sortDir * (a[sortKey] - b[sortKey]));
+  dv.table(["Category", "Last 7 days", "All time"], sorted.map(r => [r.cell, r.week, r.total]));
 }
 
 let lastMtime = -1;
@@ -256,6 +283,7 @@ function normDate(v) {
 }
 
 let rangeDays = null; // view state only; null = all time (rates need the full funnel)
+let verSortKey = "n", verSortDir = -1; // By resume version: default = most used first
 
 async function render() {
   const apps = parseCSV(await app.vault.adapter.read(PATH));
@@ -357,10 +385,30 @@ async function render() {
     if (interviewed(r)) byVer[v].int++;
   }
   dv.header(3, "By resume version");
+  const verRows = Object.entries(byVer).map(([v, s]) => ({
+    name: v, n: s.n, int: s.int, rate: s.n ? s.int / s.n : 0 }));
+  const verBar = dv.container.createEl("div", { attr: { style:
+    "display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0;" } });
+  verBar.createEl("span", { text: "Sort:", attr: { style:
+    "font-size: 0.72em; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;" } });
+  for (const [label, key] of [["Version", "name"], ["Apps", "n"],
+                              ["Interviewed", "int"], ["Rate", "rate"]]) {
+    const active = key === verSortKey;
+    const arrow = active ? (verSortDir === 1 ? " ↑" : " ↓") : "";
+    const chip = verBar.createEl("button", { text: label + arrow, attr: { style:
+      "border-radius: 5px; padding: 2px 10px;"
+      + (active ? " background: var(--interactive-accent); color: var(--text-on-accent);" : "") } });
+    chip.onclick = () => {
+      if (verSortKey === key) verSortDir = -verSortDir;
+      else { verSortKey = key; verSortDir = key === "name" ? 1 : -1; }
+      render();
+    };
+  }
+  verRows.sort((a, b) =>
+    verSortKey === "name" ? verSortDir * a.name.localeCompare(b.name)
+                          : verSortDir * (a[verSortKey] - b[verSortKey]));
   dv.table(["Version", "Apps", "Interviewed", "Rate"],
-    Object.entries(byVer)
-      .sort((a, b) => b[1].n - a[1].n)
-      .map(([v, s]) => [v, s.n, s.int, s.n ? (100 * s.int / s.n).toFixed(0) + "%" : "—"]));
+    verRows.map(r => [r.name, r.n, r.int, r.n ? (100 * r.rate).toFixed(0) + "%" : "—"]));
 }
 
 let lastMtime = 0;
@@ -674,36 +722,102 @@ dv.table(["Date", "Topic", "Confidence"], rows.map(r => [r.link, r.topic, r.conf
 
 ---
 
-## ⚙️ @@NAME_MLCODE@@ & @@NAME_MLSYS@@
+## 🛠️ @@NAME_MLCODE@@
 
 ```dataviewjs
-// Design entries carry optional structured fields (· separated, any omitted):
-// what · topic · source · link · notes. Fields are told apart without labels:
-// sources are a closed list, links start with http, first leftover = topic.
-const SOURCES = @@MLSYS_SOURCES_JSON@@.map(x => x.toLowerCase());
 const logged = i => !i.task || i.completed;
 const rows = [];
 for (const p of dv.pages('"@@DAILY_NOTES_FOLDER@@"')) {
-  for (const i of p.file.lists.filter(i => logged(i) && (i.text.includes("#@@TAG_MLCODE@@") || i.text.includes("#@@TAG_MLSYS@@")))) {
-    const text = i.text.replace(/#@@TAG_MLCODE@@\b/g, "").replace(/#@@TAG_MLSYS@@\b/g, "").trim();
-    const parts = text.split("·").map(x => x.trim()).filter(Boolean);
-    let topic = "", source = "", link = "", notes = [];
-    for (const q of parts.slice(1)) {
-      if (!source && SOURCES.includes(q.toLowerCase())) source = q.toLowerCase();
-      else if (!link && /^https?:\/\//.test(q)) link = q;
-      else if (!topic) topic = q;
-      else notes.push(q);
-    }
+  for (const i of p.file.lists.filter(i => logged(i) && i.text.includes("#@@TAG_MLCODE@@")))
     rows.push({ day: p.file.name, link: p.file.link,
-      type: i.text.includes("#@@TAG_MLCODE@@") ? "coding" : "design",
-      what: parts[0] || "—", topic: topic || "—", source: source || "—",
-      url: link ? "[link](" + link + ")" : "—",
-      notes: notes.length ? notes.join(" · ") : "—" });
-  }
+      text: i.text.replace(/#@@TAG_MLCODE@@\b/g, "").trim() });
 }
 rows.sort((a, b) => b.day.localeCompare(a.day));
-dv.table(["Date", "Type", "Entry", "Topic", "Source", "Link", "Notes"],
-  rows.map(r => [r.link, r.type, r.what, r.topic, r.source, r.url, r.notes]));
+dv.table(["Date", "Entry"], rows.map(r => [r.link, r.text]));
+```
+
+<br>
+
+---
+
+## ⚙️ @@NAME_MLSYS@@
+
+> [!note]- Where this data lives
+> Source: your daily notes in `@@DAILY_NOTES_FOLDER@@/`, as plain bullets under `@@PREP_HEADING@@`, e.g. `- Course recommendation system · recommendation · blog · https://example.com/post · two-tower retrieval #@@TAG_MLSYS@@`. Only the first field is required; topic, source, link, and notes are optional. The ＋ button's guided prompts write there for you; you can also type entries directly.
+
+```dataviewjs
+// Entries carry optional structured fields (· separated, any omitted):
+// what · topic · source · link · notes. Fields are told apart without labels:
+// sources are a closed list, links start with http, first leftover = topic.
+const SOURCES = @@MLSYS_SOURCES_JSON@@.map(x => x.toLowerCase());
+let rangeDays = null; // view state only; null = all time
+
+function render() {
+  dv.container.innerHTML = "";
+
+  const bar = dv.container.createEl("div", { attr: { style:
+    "display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 6px 0;" } });
+  const manual = bar.createEl("button", { text: "＋ @@NAME_MLSYS@@", attr: { style:
+    "border-left: 3px solid #ff991f; background: #ff991f1f; border-radius: 5px;" } });
+  manual.onclick = async () => {
+    const qa = app.plugins.plugins.quickadd;
+    if (!qa || !qa.api || !qa.api.executeChoice) {
+      new Notice("QuickAdd isn't available — is the plugin enabled?"); return;
+    }
+    if (!(qa.settings?.choices || []).some(c => c.name === "Log @@NAME_MLSYS@@")) {
+      new Notice("QuickAdd choice 'Log @@NAME_MLSYS@@' not found — deploy PrepDojo's QuickAdd config (see README → Updating).");
+      return;
+    }
+    try { await qa.api.executeChoice("Log @@NAME_MLSYS@@"); }
+    catch (e) { console.debug("PrepDojo: choice cancelled or failed", e); }
+  };
+
+  const chipRow = dv.container.createEl("div", { attr: { style:
+    "display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 28px 0 6px 0;" } });
+  for (const [label, days] of [["7d", 7], ["14d", 14], ["30d", 30], ["90d", 90], ["All", null]]) {
+    const active = days === rangeDays;
+    const chip = chipRow.createEl("button", { text: label, attr: { style:
+      "border-radius: 5px; padding: 2px 10px;"
+      + (active ? " background: var(--interactive-accent); color: var(--text-on-accent);" : "") } });
+    chip.onclick = () => { rangeDays = days; render(); };
+  }
+
+  const logged = i => !i.task || i.completed;
+  const all = [];
+  for (const p of dv.pages('"@@DAILY_NOTES_FOLDER@@"')) {
+    for (const i of p.file.lists.filter(i => logged(i) && i.text.includes("#@@TAG_MLSYS@@"))) {
+      const text = i.text.replace(/#@@TAG_MLSYS@@\b/g, "").trim();
+      const parts = text.split("·").map(x => x.trim()).filter(Boolean);
+      let topic = "", source = "", link = "", notes = [];
+      for (const q of parts.slice(1)) {
+        if (!source && SOURCES.includes(q.toLowerCase())) source = q.toLowerCase();
+        else if (!link && /^https?:\/\//.test(q)) link = q;
+        else if (!topic) topic = q;
+        else notes.push(q);
+      }
+      all.push({ day: p.file.name, link: p.file.link,
+        what: parts[0] || "—", topic: topic || "—", source: source || "—",
+        url: link ? "[link](" + link + ")" : "—",
+        notes: notes.length ? notes.join(" · ") : "—" });
+    }
+  }
+  all.sort((a, b) => b.day.localeCompare(a.day));
+
+  const now = dv.date("today");
+  const cutoff = rangeDays === null ? null : now.minus({ days: rangeDays - 1 });
+  const rows = cutoff === null ? all
+    : all.filter(r => { const d = dv.date(r.day); return d && d >= cutoff && d <= now; });
+  const rangeText = cutoff === null
+    ? `Showing all time · ${rows.length} entries`
+    : `Showing last ${rangeDays} days (${cutoff.toFormat("yyyy-MM-dd")} – ${now.toFormat("yyyy-MM-dd")}) · ${rows.length} entries`;
+  dv.container.createEl("div", { text: rangeText, attr: { style:
+    "font-size: 0.8em; font-style: italic; color: #8a8a8a; margin: 0 0 8px 0;" } });
+
+  dv.table(["Date", "Entry", "Topic", "Source", "Link", "Notes"],
+    rows.map(r => [r.link, r.what, r.topic, r.source, r.url, r.notes]));
+}
+
+render();
 ```
 
 <br>
