@@ -12,12 +12,12 @@ Dataview's JavaScript queries, assigning hotkeys). This script does everything
 else and prints exactly what's left at the end.
 
 Usage:
-    python3 setup.py
-        First run: creates config.toml and tells you to put your vault path in
-        it (edit the file in any text editor). Second run: installs everything.
     python3 setup.py /path/to/YourVault
-        One-shot alternative: pass the vault path directly; it is recorded in
-        config.toml for you. (PREPDOJO_VAULT env var works too.)
+        Pass your vault's path; it is recorded in config.toml for you.
+        (PREPDOJO_VAULT env var works too.)
+    python3 setup.py
+        No path: offers to install into the current folder, so running it
+        from inside your vault needs no arguments at all.
 
 Requires Python 3.9+. On 3.9/3.10 it installs the `tomli` package for you;
 on 3.11+ nothing extra is needed. Runs on macOS, Linux, and Windows.
@@ -69,32 +69,6 @@ def config_vault_path() -> Optional[str]:
     return None
 
 
-EDIT_INSTRUCTIONS = (
-    '  In the [vault] section, find:   # path = "/absolute/path/to/YourVault"\n'
-    '  Remove the leading "# " and put your vault\'s location between the\n'
-    '  quotes, e.g.:   path = "~/Documents/MyVault"\n'
-    "  (Tip: drag the vault folder into the editor line, or right-click the\n"
-    "  folder → hold Option (macOS) → 'Copy as Pathname'.)\n"
-    "  While you're in there: if you already keep daily notes in a specific\n"
-    "  folder, set daily_notes_folder in the same section."
-)
-
-
-def open_in_editor(path: Path) -> bool:
-    """Best-effort: open the file with the system default app."""
-    try:
-        if sys.platform == "darwin":
-            subprocess.run(["open", str(path)], check=False)
-        elif os.name == "nt":
-            os.startfile(str(path))  # type: ignore[attr-defined]
-        else:
-            subprocess.run(["xdg-open", str(path)], check=False,
-                           stderr=subprocess.DEVNULL)
-        return True
-    except Exception:
-        return False
-
-
 def resolve_vault(just_created: bool) -> str:
     if len(sys.argv) > 1:
         return sys.argv[1]
@@ -107,30 +81,23 @@ def resolve_vault(just_created: bool) -> str:
         print(f"  using vault path from config.toml: {from_config}")
         return from_config
 
-    # No path yet: open the config in the user's editor and wait, so setup
-    # completes in this single run.
-    cfg = ROOT / "config.toml"
-    print("\nOne thing to fill in — your vault's location.")
-    opened = open_in_editor(cfg)
-    print(f"  {'Opening' if opened else 'Open'}  {cfg}  {'in your editor...' if opened else 'in any text editor.'}")
-    print(EDIT_INSTRUCTIONS)
-    while True:
-        try:
-            answer = input("\nSave the file, then press Enter to continue (or q to quit): ")
-        except EOFError:
-            # Non-interactive (CI, piped): fall back to the two-run flow.
-            print("\nNo interactive terminal. Fill in the path as described above,")
-            print("then run  python3 setup.py  again.")
-            sys.exit(0)
-        if answer.strip().lower() == "q":
-            print("Stopped. Rerun  python3 setup.py  once the path is filled in.")
-            sys.exit(0)
-        from_config = config_vault_path()
-        if from_config:
-            print(f"  got it: {from_config}")
-            return from_config
-        print("  config.toml still has no vault path — check the [vault] section,")
-        print('  make sure the line starts with  path = "  (no leading #), and save.')
+    # No path given anywhere: offer the folder the command was run from.
+    cwd = Path.cwd()
+    if cwd.resolve() == ROOT.resolve():
+        print("\nNo vault path given, and the current folder is the PrepDojo repo")
+        print("itself, which can't be a vault. Rerun with your vault's path:")
+        print("    python3 setup.py /path/to/YourVault")
+        sys.exit(1)
+    try:
+        answer = input(f"\nNo vault path given. Install into the current folder?\n    {cwd}\n[y/N]: ")
+    except EOFError:
+        print("\nNo interactive terminal and no vault path. Rerun with:")
+        print("    python3 setup.py /path/to/YourVault")
+        sys.exit(1)
+    if answer.strip().lower() in ("y", "yes"):
+        return str(cwd)
+    print("Stopped. Rerun with  python3 setup.py /path/to/YourVault")
+    sys.exit(0)
 
 
 def write_vault_path(vault: str) -> None:

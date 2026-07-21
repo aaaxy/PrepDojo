@@ -29,15 +29,22 @@ Everything stays in plain files on your own computer — no account, no subscrip
 ![Logging with one click](docs/media/log-click.gif)
 -->
 
-📊 **One page shows it all.** Open the dashboard and today's story is already written: your streak burning, topics ranked from solid to shaky, applications moving through the pipeline. No assembly required at all.
+📮 **Track every application to the end.** Heard back? Hit ✎ Update and log the new status in seconds. Interviews and offers rise to the top.
 
-<!-- TODO screenshot (the money shot): the dashboard in Reading view showing the
-     streak line + by-topic and by-difficulty tables. Save as docs/media/dashboard.png -->
+<!-- TODO gif: ✎ Update click → fuzzy search "stri" → pick → status HR Call →
+     Active table shows the row. Save as docs/media/update-app.gif, embed:
+![Track every application](docs/media/update-app.gif)
+-->
 
-📄 **A/B test your resume.** Stop guessing which resume works. Every application records the version you sent, and the dashboard turns that into interview rates per version.
+📄 **A/B test your resume.** Stop guessing which resume works. Every application you send is quietly running an experiment. See the results.
 
 <!-- TODO screenshot: the "By resume version" table with rates.
      Save as docs/media/resume-rates.png -->
+
+📊 **One page shows it all.** Everything above lives on a single dashboard: your streak burning, topics ranked from solid to shaky, interviews and offers up top, resume rates below. Open it and today's story is already written. No assembly required.
+
+<!-- TODO screenshot (the money shot): the dashboard in Reading view showing the
+     streak line + by-topic and by-difficulty tables. Save as docs/media/dashboard.png -->
 
 🤖 **Or let AI do the logging.** Too tired to click? Toss Claude a LeetCode link or mumble "did two sum today" and the entry writes itself.
 
@@ -47,114 +54,80 @@ Everything stays in plain files on your own computer — no account, no subscrip
 ## Requirements
 
 
-- **Obsidian**
+- **[Obsidian](https://obsidian.md)**
 - **Python 3.9+** for the one-command setup. No Python at all? See [manual setup](docs/manual-setup.md).
 
 Optional: the Claude desktop app (Cowork) or Claude Code, if you want AI logging.
 
 ## Quick start
 
-### For Obsidian 1.12+:
+Get the repo:
 
 ```bash
-python3 setup.py
+git clone https://github.com/aaaxy/PrepDojo.git
+cd PrepDojo
 ```
 
-It creates your `config.toml`, opens it in your editor, and waits. Paste your vault's location into the marked line (drag the folder into the editor to get the path — no typing), save, press Enter back in the terminal, and it finishes everything: vault files (dashboard, daily-note template, QuickAdd config), and — on **Obsidian 1.12+** with its CLI enabled — the three plugins, installed and enabled. It ends by printing the few GUI-only steps that remain. If the `obsidian` command isn't available (older Obsidian, or the CLI not enabled yet), it does everything else and tells you how to add the plugins by hand.
+Prepare your vault:
 
-(Prefer flags? `python3 setup.py /path/to/YourVault` skips the editor pause.)
+1. Pick the folder that is (or will be) your Obsidian vault. It should live outside this repo.
+2. Open that vault in Obsidian at least once.
+3. On **Obsidian 1.12+**: open **Settings → General →** enable **Command line interface**.
 
-To get the automatic plugin install, two one-time things first: enable Obsidian's CLI (Settings → General → Command line interface → register it), and open your target vault in Obsidian at least once. The CLI installs plugins into whichever vault Obsidian has open, so `setup.py` checks that it matches your target and safely skips the plugin step (with instructions) if a different vault is open. Then finish the GUI-only bits the script lists at the end — enable Dataview's **JavaScript queries** and assign **QuickAdd hotkeys** — and you're done.
-
-#### Obsidian older than 1.12
-
-Everything works the same except the plugin install (older Obsidian has no CLI for setup to use). Run `python3 setup.py` as above; when it notes the `obsidian` command is missing, add the three plugins yourself:
-
-1. Settings → Community plugins → turn off Restricted mode
-2. Browse → install and enable **Dataview**, **QuickAdd**, and **Calendar**
-3. Continue with the GUI steps setup printed (JavaScript queries, hotkeys)
-
-### Or set it up step by step
-
-Want to see each part, already use QuickAdd, or on Obsidian older than 1.12? Do the same thing by hand:
-
-**1. Make your own config.** Copy the template to `config.toml` and edit that file (leaving `config-template.toml` untouched as a clean reference you can always fall back to):
+Back in the terminal, run setup with your vault's path:
 
 ```bash
-cp config-template.toml config.toml
+python3 setup.py /path/to/YourVault
 ```
 
-Then check three settings in the `[vault]` section of `config.toml`:
+Only if you're on **Obsidian older than 1.12** (setup can't install the plugins without the CLI):
 
-| Setting | What it is | Default |
+1. Open **Settings → Community plugins** and turn off **Restricted mode**.
+2. Click **Browse**, then install and enable **[Dataview](https://obsidian.md/plugins?id=dataview)**, **[QuickAdd](https://obsidian.md/plugins?id=quickadd)**, and **[Calendar](https://obsidian.md/plugins?id=calendar)**.
+
+Finish in Obsidian, whichever version you're on:
+
+1. Open **Settings → Community plugins**, click the ⚙️ next to **Dataview**, and turn on **Enable JavaScript queries**.
+2. Open the dashboard note in Reading view and click a button. Done.
+
+Tables start empty and fill in as you log — that's normal, not a broken setup.
+
+
+## Configuration
+
+All configuration lives in `config.toml` (your personal copy of `config-template.toml`), grouped by how likely you are to touch it:
+
+| Group | Settings | When you'd change it |
 |---|---|---|
-| `daily_notes_folder` | where your daily notes live | `Calendar/Daily Notes` |
-| `daily_note_template` | where the daily note template goes | `Templates/Daily Note.md` |
-| `dashboard_path` | where the dashboard note goes | `Interview Prep Dashboard.md` |
+| `[vault]` | `daily_notes_folder`, `daily_note_template`, `dashboard_path`, `date_format`, `prep_heading` | day one, to match your vault layout |
+| `[categories.*]` | `name`, `tag`, `hotkey` per category | to rename categories, change tags, or add hotkeys; rename all five and the same system tracks any daily practice |
+| `[leetcode]` | `topics`, `difficulties` | to adjust the topic taxonomy the dropdowns and dashboard grouping use |
+| `[applications]` | `folder` | where the job-application CSVs live in the vault; the installer creates empty starters there (never overwriting existing data) and the dashboard's Job Applications section reads them |
 
-Already using daily notes? Set `daily_notes_folder` to your existing folder. New vault? Keep the defaults. Everything else in the file (tags, hotkeys, topics) has sensible defaults you can revisit later; see [Configuration](#configuration).
+After any change, rerun `python3 generate.py` (see [Updating](#updating)).
 
-**2. Install the three Obsidian plugins.** PrepDojo needs [Dataview](https://obsidian.md/plugins?id=dataview) (the dashboard engine), [QuickAdd](https://obsidian.md/plugins?id=quickadd) (hotkey logging), and [Calendar](https://obsidian.md/plugins?id=calendar) (click a date to open its note). On **Obsidian 1.12 or newer**, install all three from the terminal:
 
-```bash
-# one-time: in Obsidian, Settings → General → Command line interface → register it to your PATH
-obsidian plugins:restrict off
-obsidian plugin:install id=dataview enable
-obsidian plugin:install id=quickadd enable
-obsidian plugin:install id=calendar enable
-```
+## Updating
 
-What this changes in your vault, so there are no surprises: it turns **Restricted Mode off** (this is what allows community plugins to run their code — required for any of them to work) and both installs **and enables** the three plugins. One related setting is left for you to flip in step 4: Dataview's **JavaScript queries**.
+The same short ritual covers both kinds of update — pulling a new PrepDojo version, or changing your own `config.toml` / templates:
 
-> **On Obsidian older than 1.12?** There's no CLI, so install the three plugins the usual way — Settings → Community plugins → Browse — or follow the [manual setup](docs/manual-setup.md) walkthrough, then carry on with the next step.
+1. **Quit Obsidian.** QuickAdd keeps its settings in memory and writes them back on exit; deploying while it runs can silently undo the update.
+2. If updating PrepDojo itself: `git pull`.
+3. **Deploy:** `python3 generate.py` (it installs into the vault recorded in your config; pass `--install /path/to/AnotherVault` to target a different one).
+4. **Read the output.** `installed` and `up to date` mean done. `PRESERVED ... new version written to *.new` means you've hand-edited that file since it was installed — compare it with the `.new` copy and merge at your own pace, or rerun with `--force` to take the new version wholesale.
+5. **Restart Obsidian.** Config files are read at launch, so this is what makes the update live.
+6. Two things never update automatically:
+   - **Hotkeys** — Obsidian's `hotkeys.json` is shared with everything else, so PrepDojo never writes it. If the update added new QuickAdd choices, bind them in Settings → Hotkeys (or merge `dist/obsidian/hotkeys-snippet.json`).
+   - **The Claude skill** — it lives in your Claude profile, not the vault. If the update changed it, re-install `dist/claude-skill/lc-logger.skill`.
 
-**3. Generate and install.** Quit Obsidian first (step 2 opened it), so QuickAdd doesn't write its in-memory config back over the files this step installs:
+What an update can and cannot touch, as a rule: generated files that you haven't edited (dashboard, daily-note template, QuickAdd config, logging script) update in place; anything you *have* edited is preserved with a `.new` beside it; your data — daily notes and application CSVs — is never written by the installer, under any flag.
 
-```bash
-python3 generate.py
-```
+Three habits that keep updates smooth:
 
-The first run creates your personal `config.toml` from the template; set `path` under `[vault]` in it to your vault's location, then rerun — it builds everything and installs it into the vault in one step (or pass `--install /path/to/YourVault` to override). Installs are edit-safe: files you've modified are never overwritten (the fresh version lands next to them as `*.new.md`; details in [Updating](#updating)), and your data — daily notes, application CSVs — is never touched.
+1. Customize in the repo's `templates/`, not in the installed vault copies; treat vault files as build outputs. QuickAdd's config is special: it's merged, not replaced — PrepDojo updates only its own choices (matched by ID) and leaves the plugin's settings and any choices you created yourself untouched. The flip side: edits you make to *PrepDojo's* choices in QuickAdd's settings UI are overwritten on the next deploy, so change those via `config.toml` instead.
+2. Config changes affect future entries only. If you rename a tag (say `lc` to `leetcode`), old entries still carry the old tag and drop off the dashboard until you find-and-replace them in your daily notes.
+3. After any update that touches the dashboard, reopen the dashboard note once — the running code in an open tab is the old version until the note re-renders.
 
-**4. Restart Obsidian**, then two clicks of wiring: enable **JavaScript queries** in Dataview's settings, and assign hotkeys under Settings → Hotkeys → search "QuickAdd" (suggested: `Cmd/Ctrl+Shift+L` for LeetCode).
-
-**5. Try it.** Press the hotkey, log a problem for "today", and open the dashboard note in Reading view. You should see the entry in the tables and a one-day streak. (Before you log anything the dashboard is empty — blank tables are expected, not a broken setup; they fill in as you log.)
-
-<details>
-<summary>Installing by hand (Python older than 3.11 without tomli, or if you already use QuickAdd)</summary>
-
-Run `python3 generate.py --no-install` (builds `dist/` without touching the vault), then copy from `dist/`:
-
-| File in `dist/` | Where it goes |
-|---|---|
-| `vault/<your template path>` | same path inside your vault |
-| `vault/<your dashboard path>` | same path inside your vault |
-| `obsidian/daily-notes.json` | `<vault>/.obsidian/daily-notes.json` |
-| `obsidian/plugins/quickadd/data.json` | `<vault>/.obsidian/plugins/quickadd/data.json` |
-| `obsidian/hotkeys-snippet.json` | merge into `<vault>/.obsidian/hotkeys.json` |
-| `claude-skill/lc-logger.skill` | install in Claude (see [Logging](#logging)) |
-
-**Warning**: the generated QuickAdd `data.json` replaces that plugin's existing configuration. If you already use QuickAdd for other things, don't copy the file; recreate the capture choices manually following [docs/manual-setup.md](docs/manual-setup.md).
-
-</details>
-
-## How it works
-
-Every entry is one plain bullet in a daily note, ending with a category tag:
-
-```
-## Interview Prep
-
-- LC #200 Number of Islands · Medium · bfs/dfs #lc
-- bias-variance tradeoff · 🟢 #mlfund
-- design a feed ranking system #mlsys
-```
-
-That's the entire data model. Three tools write and read these lines:
-
-1. **QuickAdd (Obsidian plugin)**: press a hotkey anywhere in Obsidian, pick a day ("today", "yesterday", "last friday"), fill labeled prompts with dropdowns for difficulty and topic. No typos, no format drift.
-2. **Claude skill** (optional): paste a LeetCode URL into a Claude (Cowork/Claude Code) session with vault access and it identifies the problem, asks which approach you used, and writes the entry.
-3. **Dashboard (Dataview)**: a single note that renders stats, streaks, and per-category tables from all daily notes. Open it; it is always current.
 
 ## System overview
 
@@ -206,75 +179,6 @@ flowchart LR
     S --> C["Your Claude setup"]
 ```
 
-## Configuration
-
-All configuration lives in `config.toml` (your personal copy of `config-template.toml`), grouped by how likely you are to touch it:
-
-| Group | Settings | When you'd change it |
-|---|---|---|
-| `[vault]` | `daily_notes_folder`, `daily_note_template`, `dashboard_path`, `date_format`, `prep_heading` | day one, to match your vault layout |
-| `[categories.*]` | `name`, `tag`, `hotkey` per category | to rename categories, change tags, or add hotkeys; rename all five and the same system tracks any daily practice |
-| `[leetcode]` | `topics`, `difficulties` | to adjust the topic taxonomy the dropdowns and dashboard grouping use |
-| `[applications]` | `folder` | where the job-application CSVs live in the vault; the installer creates empty starters there (never overwriting existing data) and the dashboard's Job Applications section reads them |
-
-After any change, rerun `python3 generate.py` (see [Updating](#updating)).
-
-## Logging
-
-- In Obsidian: hotkey (default `Cmd/Ctrl+Shift+L` for LeetCode, `Cmd/Ctrl+Shift+M` for ML fundamentals) → pick day → answer prompts. The other three categories get QuickAdd choices too; assign hotkeys in `config.toml` or via Settings → Hotkeys.
-- Applications, also by hotkey: `Cmd/Ctrl+Shift+A` (configurable) opens a short prompt flow — company, position, resume version picked from your catalog, status — and appends a properly formatted row to `applications.csv`. No terminal, no AI, no CSV editing; the dashboard picks it up within seconds.
-- With Claude: install `dist/claude-skill/lc-logger.skill`, connect your vault folder to the session, then paste a problem link or say "did 239 yesterday, solved with dp".
-- With other LLMs: the skill is plain markdown with every convention spelled out, so it doubles as a ready-made system prompt for any agent that can read and write files in your vault (a custom GPT, Cursor rules, a Gemini CLI context file, an `AGENTS.md`). Copy the contents of `dist/claude-skill/lc-logger/SKILL.md` into your agent's instructions; only the packaging and the clickable question dialog are Claude-specific, and the latter degrades gracefully to a plain-text question.
-- From a terminal or script: the CLI validates against your taxonomy and writes to the right daily note (Obsidian doesn't need to be running):
-
-  ```bash
-  export PREPDOJO_VAULT=/path/to/YourVault   # or set `path` under [vault] in config.toml
-  python3 prepdojo.py log lc "#200 Number of Islands" -d medium -t bfs/dfs
-  python3 prepdojo.py log lc "#322 Coin Change" -d M -t dp --note "needed hints" --date yesterday
-  python3 prepdojo.py log mlfund "batch norm" --conf yellow
-  python3 prepdojo.py streak      # streak + per-category counts, no Obsidian needed
-  ```
-
-  The CLI also covers job application tracking (optional; stores rows in CSV files that the dashboard's Job Applications section reads live — see `[applications]` in the config):
-
-  ```bash
-  python3 prepdojo.py apps log "Stripe" "ML Engineer, Risk" -r fraud-risk --status Applied
-  python3 prepdojo.py apps log "Acme" "MLE, Search" --status Wishlist
-  python3 prepdojo.py apps stats   # today / week / pipeline / interview rate
-  ```
-
-  Resume versions are validated against your catalog (typos get suggestions), duplicates are refused, and `Wishlist` rows get no applied date until you actually apply.
-
-  Because it's a single validated entry point, anything that can run a shell command becomes a capture surface: a Raycast/Alfred snippet, a git hook, a browser userscript on LeetCode's "Accepted" page.
-- By hand: type the bullet yourself. Unchecked checkboxes (`- [ ]`) are treated as placeholders and ignored by the dashboard; plain bullets and checked tasks count.
-
-## Conventions worth knowing
-
-- Topics are lowercase and come from the taxonomy in `config.toml`. Consistency is what makes the by-topic table useful.
-- Finer divisions use `main - subtopic` (e.g. `dp - knapsack`); the dashboard groups them under `main` and shows the full string in the problem table.
-- A short note can ride on the entry as a fourth segment (`... · dp · needed hints #lc`) and appears in the dashboard's Notes column. Longer notes go as indented sub-bullets under the entry; the dashboard ignores them on purpose.
-- Difficulty accepts `Easy/Medium/Hard`, `E/M/H`, or 🟢/🟡/🔴; the dashboard normalizes all of them.
-
-## Updating
-
-The same short ritual covers both kinds of update — pulling a new PrepDojo version, or changing your own `config.toml` / templates:
-
-1. **Quit Obsidian.** QuickAdd keeps its settings in memory and writes them back on exit; deploying while it runs can silently undo the update.
-2. If updating PrepDojo itself: `git pull`.
-3. **Deploy:** `python3 generate.py` (it installs into the vault recorded in your config; pass `--install /path/to/AnotherVault` to target a different one).
-4. **Read the output.** `installed` and `up to date` mean done. `PRESERVED ... new version written to *.new` means you've hand-edited that file since it was installed — compare it with the `.new` copy and merge at your own pace, or rerun with `--force` to take the new version wholesale.
-5. **Restart Obsidian.** Config files are read at launch, so this is what makes the update live.
-6. Two things never update automatically:
-   - **Hotkeys** — Obsidian's `hotkeys.json` is shared with everything else, so PrepDojo never writes it. If the update added new QuickAdd choices, bind them in Settings → Hotkeys (or merge `dist/obsidian/hotkeys-snippet.json`).
-   - **The Claude skill** — it lives in your Claude profile, not the vault. If the update changed it, re-install `dist/claude-skill/lc-logger.skill`.
-
-What an update can and cannot touch, as a rule: generated files that you haven't edited (dashboard, daily-note template, QuickAdd config, logging script) update in place; anything you *have* edited is preserved with a `.new` beside it; your data — daily notes and application CSVs — is never written by the installer, under any flag.
-
-Three habits that keep updates smooth:
-
-1. Customize in the repo's `templates/`, not in the installed vault copies; treat vault files as build outputs. QuickAdd's config is special: it's merged, not replaced — PrepDojo updates only its own choices (matched by ID) and leaves the plugin's settings and any choices you created yourself untouched. The flip side: edits you make to *PrepDojo's* choices in QuickAdd's settings UI are overwritten on the next deploy, so change those via `config.toml` instead.
-2. Config changes affect future entries only. If you rename a tag (say `lc` to `leetcode`), old entries still carry the old tag and drop off the dashboard until you find-and-replace them in your daily notes.
-3. After any update that touches the dashboard, reopen the dashboard note once — the running code in an open tab is the old version until the note re-renders.
 
 ## Repository layout
 
