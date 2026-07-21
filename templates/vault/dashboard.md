@@ -64,6 +64,7 @@ mk(behavioral, "＋ @@NAME_BQ@@", "Log @@NAME_BQ@@", "#ff7eb6");
 const jobs = section("Where did you apply today?");
 const jobsRow = row(jobs, "");
 mk(jobsRow, "＋ Application", "Log Application", "#00b8d9");
+mk(jobsRow, "✎ Update application", "Update Application", "#00b8d9");
 mk(jobsRow, "＋ Resume version", "Add Resume Version", "#8993a4");
 
 // Floating back-to-top button, pinned to the viewport's bottom right while
@@ -328,6 +329,7 @@ async function render() {
     };
   };
   qaBtn("＋ Application", "Log Application", "#00b8d9");
+  qaBtn("✎ Update", "Update Application", "#00b8d9");
   qaBtn("＋ Resume version", "Add Resume Version", "#8993a4");
 
   // range chips: filter Pipeline / Responses / By resume version by Applied Date
@@ -359,40 +361,36 @@ async function render() {
   if (offers.length) {
     dv.header(3, "Offers 🎉");
     dv.table(["Company", "Position", "Location", "Salary", "Until"],
-      offers.map(r => [r["Company"], r["Position Title"], r["Location"] || "—",
-        r["Comp Range"] || "—", r["Follow-up Date"] || "—"]));
+      offers.map(r => [r["Company"],
+        r["Job Link"] ? "[" + r["Position Title"] + "](" + r["Job Link"] + ")" : r["Position Title"],
+        r["Location"] || "—", r["Comp Range"] || "—", r["Follow-up Date"] || "—"]));
   }
 
-  const INTERVIEWING = ["OA", "Phone Screen", "Onsite", "Team Match"];
+  const INTERVIEWING = ["HR Call", "OA", "Phone Screen", "Onsite", "Team Match"];
   const inInterviews = apps.filter(r => INTERVIEWING.includes((r["Status"] || "").trim()));
+  dv.header(3, "Active");
+  dv.container.createEl("div", { text:
+    "Heard back? Hit ✎ Update, set the new status, and it shows up here.",
+    attr: { style: "font-size: 0.8em; font-style: italic; color: #8a8a8a; margin: 0 0 8px 0;" } });
   if (inInterviews.length) {
-    dv.header(3, "In interviews");
     dv.table(["Company", "Position", "Stage", "Last update", "Follow-up"],
-      inInterviews.map(r => [r["Company"], r["Position Title"], r["Status"],
-        r["Last Update"] || "—", r["Follow-up Date"] || "—"]));
+      inInterviews.map(r => [r["Company"],
+        r["Job Link"] ? "[" + r["Position Title"] + "](" + r["Job Link"] + ")" : r["Position Title"],
+        r["Status"], r["Last Update"] || "—", r["Follow-up Date"] || "—"]));
   }
 
-  // pipeline: count by current status. Active = interviewing or awaiting
-  // results; a plain submitted application doesn't count.
-  const byStatus = {};
-  for (const r of rows) byStatus[r["Status"] || "—"] = (byStatus[r["Status"] || "—"] ?? 0) + 1;
-  const active = INTERVIEWING.reduce((s, k) => s + (byStatus[k] ?? 0), 0);
-  dv.header(3, "Pipeline");
-  dv.paragraph(`Active (interviewing or awaiting results): **${active}**`);
-  dv.table(["Status", "Count"],
-    Object.entries(byStatus).sort((a, b) => b[1] - a[1]));
-
-  // milestones ever reached (from stage history)
-  const ever = s => rows.filter(r => (r["Stage History"] || "").toLowerCase()
-    .includes(s.toLowerCase())).length;
-  const nInt = rows.filter(interviewed).length;
-  dv.header(3, "Responses");
-  dv.table(["Milestone", "Count", "Rate"], [
-    ["Ever Phone Screen", ever("Phone Screen"), ""],
-    ["Ever Onsite", ever("Onsite"), ""],
-    ["Ever Offer", ever("Offer"), ""],
-    ["Ever interviewed (≥1 round)", nInt, rows.length ? (100 * nInt / rows.length).toFixed(1) + "%" : "—"],
-    ["Rejected", byStatus["Rejected"] ?? 0, ""],
+  // summary: milestones ever reached (from stage history) + terminal states
+  const ever = q => rows.filter(r => (r["Stage History"] || "").toLowerCase()
+    .includes(q.toLowerCase())).length;
+  const byStatus = q => rows.filter(r => (r["Status"] || "").trim() === q).length;
+  dv.header(3, "Summary");
+  dv.table(["Milestone", "Count"], [
+    ["Ever Phone Screen", ever("Phone Screen")],
+    ["Ever Onsite", ever("Onsite")],
+    ["Ever Offer", ever("Offer")],
+    ["Withdrawn", byStatus("Withdrawn")],
+    ["Rejected", byStatus("Rejected")],
+    ["Total applications", rows.length],
   ]);
 
   // by resume version: usage + interview rate

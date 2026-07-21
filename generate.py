@@ -205,6 +205,23 @@ def build_quickadd(cfg: dict) -> dict:
     # user script (prompts for company/position/version/status, appends a
     # properly quoted CSV row).
     choices.append({
+        "id": stable_id("apps-update"),
+        "name": "Update Application",
+        "type": "Macro",
+        "command": True,
+        "runOnStartup": False,
+        "macro": {
+            "id": stable_id("apps-update-macro"),
+            "name": "Update Application",
+            "commands": [{
+                "name": "prepdojo-update-application",
+                "type": "UserScript",
+                "path": "scripts/prepdojo-update-application.js",
+                "settings": {},
+            }],
+        },
+    })
+    choices.append({
         "id": stable_id("apps-log"),
         "name": "Log Application",
         "type": "Macro",
@@ -321,6 +338,8 @@ def main() -> None:
     write(DIST / "vault" / "scripts" / "prepdojo-add-resume-version.js", ver_script)
     mlsys_script = render((TEMPLATES / "vault" / "log-mlsys.js").read_text(encoding="utf-8"), rep)
     write(DIST / "vault" / "scripts" / "prepdojo-log-mlsys.js", mlsys_script)
+    upd_script = render((TEMPLATES / "vault" / "update-application.js").read_text(encoding="utf-8"), rep)
+    write(DIST / "vault" / "scripts" / "prepdojo-update-application.js", upd_script)
 
     # Obsidian config
     write(DIST / "obsidian" / "daily-notes.json", json.dumps({
@@ -379,6 +398,8 @@ def main() -> None:
              vault / "scripts" / "prepdojo-add-resume-version.js"),
             (DIST / "vault" / "scripts" / "prepdojo-log-mlsys.js",
              vault / "scripts" / "prepdojo-log-mlsys.js"),
+            (DIST / "vault" / "scripts" / "prepdojo-update-application.js",
+             vault / "scripts" / "prepdojo-update-application.js"),
             (DIST / "obsidian" / "daily-notes.json", vault / ".obsidian" / "daily-notes.json"),
         ]
         def clean_stale_new(dst: Path) -> None:

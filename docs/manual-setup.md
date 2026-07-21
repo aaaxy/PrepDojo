@@ -90,10 +90,10 @@ Company,Position Title,Req ID,Job Link,Location,Remote?,Comp Range,Applied Date,
 Version ID,Short Description,Emphasis / Angle,Target Role Type,File Path,Date Last Updated,Notes
 ```
 
-2. Copy `templates/vault/log-application.js` and `templates/vault/add-resume-version.js` into a `scripts/` folder in your vault, replacing `@@APPLICATIONS_FOLDER@@` in each.
-3. Settings → QuickAdd: add two **Macro** choices named exactly `Log Application` and `Add Resume Version`, each running its user script (Manage Macros → add the script from `scripts/`).
+2. Copy `templates/vault/log-application.js`, `templates/vault/update-application.js`, and `templates/vault/add-resume-version.js` into a `scripts/` folder in your vault, replacing `@@APPLICATIONS_FOLDER@@` in each.
+3. Settings → QuickAdd: add three **Macro** choices named exactly `Log Application`, `Update Application`, and `Add Resume Version`, each running its user script (Manage Macros → add the script from `scripts/`).
 
-The ＋ Application and ＋ Resume version buttons on the dashboard run these two choices; you can also edit the CSVs in any spreadsheet app (export as CSV, keep the header row).
+The ＋ Application, ✎ Update, and ＋ Resume version buttons on the dashboard run these three choices; you can also edit the CSVs in any spreadsheet app (export as CSV, keep the header row).
 
 ## 6. Claude skill (optional)
 
