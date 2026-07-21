@@ -74,7 +74,10 @@ module.exports = async (params) => {
     "Notes": (notes || "").trim(),
   };
   const line = header.map(h => quote(values[h] ?? "")).join(",");
-  const body = raw.endsWith("\n") || raw === "" ? raw : raw + "\n";
+  // Re-read just before writing: another writer (AI skill, spreadsheet,
+  // update flow) may have changed the file while the prompts were open.
+  const current = await app.vault.adapter.read(FILE);
+  const body = current.endsWith("\n") || current === "" ? current : current + "\n";
   await app.vault.adapter.write(FILE, body + line + "\n");
   new Notice("Added resume version: " + id + " — it's now in the logging dropdown");
 };

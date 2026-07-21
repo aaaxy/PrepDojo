@@ -70,6 +70,10 @@ module.exports = async (params) => {
   if (pickIdx == null) return;
   const row = rows[pickIdx];
   const who = get(row, "Company") + " — " + get(row, "Position Title");
+  // Identity of the picked row + the columns actually edited, so the save can
+  // merge into a fresh read instead of writing back this (possibly stale) copy.
+  const origCompany = get(row, "Company"), origPosition = get(row, "Position Title");
+  const touched = new Set();
 
   // --- date helpers ---
   const iso = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); // local date, not UTC
@@ -104,6 +108,7 @@ module.exports = async (params) => {
       set(row, "Status", s);
       const hist = get(row, "Stage History").trim();
       set(row, "Stage History", hist ? hist + " → " + s : s);
+      touched.add("Status"); touched.add("Stage History");
       changes++;
     } else if (action === "note") {
       const n = ((await quickAddApi.inputPrompt("Note (dated automatically)")) || "").trim();
@@ -111,12 +116,14 @@ module.exports = async (params) => {
       const cur = get(row, "Notes").trim();
       const stamped = iso(today) + ": " + n.replace(/·/g, "-");
       set(row, "Notes", cur ? cur + " | " + stamped : stamped);
+      touched.add("Notes");
       changes++;
     } else if (action === "contact") {
       const c = await quickAddApi.inputPrompt(
         "Recruiter / contact (name, email…)", "", get(row, "Recruiter / Contact"));
       if (c == null) continue;
       set(row, "Recruiter / Contact", c.trim());
+      touched.add("Recruiter / Contact");
       changes++;
     } else if (action === "followup") {
       const f = await quickAddApi.suggester(
@@ -134,23 +141,49 @@ module.exports = async (params) => {
       }
       if (v == null) continue;
       set(row, "Follow-up Date", v);
+      touched.add("Follow-up Date");
       changes++;
     } else if (action === "comp") {
       const c = await quickAddApi.inputPrompt("Comp range / offer", "", get(row, "Comp Range"));
       if (c == null) continue;
       set(row, "Comp Range", c.trim());
+      touched.add("Comp Range");
       changes++;
     } else if (action === "next") {
       const c = await quickAddApi.inputPrompt("Next action", "", get(row, "Next Action"));
       if (c == null) continue;
       set(row, "Next Action", c.trim());
+      touched.add("Next Action");
       changes++;
     }
   }
 
   if (!changes) { new Notice("PrepDojo: nothing changed."); return; }
   set(row, "Last Update", iso(today));
-  const out = rows.map(r => r.map(quote).join(",")).join("\n") + "\n";
+  touched.add("Last Update");
+
+  // Merge into a FRESH read of the file. Writing back the copy read at the
+  // start would erase anything logged by other writers (AI skill, spreadsheet,
+  // ＋ Application) while the prompts were open.
+  const fresh = parseCSV(await app.vault.adapter.read(APPS));
+  const fheader = fresh[0] || [];
+  const fcol = n => fheader.indexOf(n);
+  const fval = (r, n) => { const i = fcol(n); return i >= 0 ? (r[i] ?? "") : ""; };
+  const norm = v => (v || "").trim().toLowerCase();
+  const target = fresh.slice(1).find(r =>
+    norm(fval(r, "Company")) === norm(origCompany) &&
+    norm(fval(r, "Position Title")) === norm(origPosition));
+  if (!target) {
+    new Notice("PrepDojo: " + who + " is no longer in the CSV (changed while you edited?) — nothing written.");
+    return;
+  }
+  for (const name of touched) {
+    const i = fcol(name);
+    if (i < 0) continue;
+    while (target.length <= i) target.push("");
+    target[i] = get(row, name);
+  }
+  const out = fresh.map(r => r.map(quote).join(",")).join("\n") + "\n";
   await app.vault.adapter.write(APPS, out);
   new Notice("Updated " + who + " (" + changes + " change" + (changes === 1 ? "" : "s") + ")");
 };
