@@ -196,12 +196,6 @@ dist/                generated output (gitignored)
 config.toml          your personal config (gitignored, created from the template)
 ```
 
-Working on prepdojo itself and committing changes? Enable the guard hook once so a stray local path can't slip into a commit:
-
-```bash
-git config core.hooksPath .githooks
-```
-
 ## License
 
 [PolyForm Noncommercial 1.0.0](LICENSE): free to use, modify, and share for any noncommercial purpose (personal use, education, research, nonprofits). Commercial use requires a separate license from the author.
