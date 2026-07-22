@@ -92,19 +92,24 @@ Finish in Obsidian, whichever version you're on:
 
 Tables start empty and fill in as you log — that's normal, not a broken setup.
 
+Setup asks two optional questions along the way — your LeetCode username (powers the import button) and your daily-notes folder. Everything else has sensible defaults you can change later; see [Configuration](#configuration).
+
 
 ## Configuration
 
-All configuration lives in `config.toml` (your personal copy of `config-template.toml`), grouped by how likely you are to touch it:
+Setup asks for everything it needs, so most people never open a config file. The answers live in `config.toml` in the repo, which stays deliberately small:
 
-| Group | Settings | When you'd change it |
-|---|---|---|
-| `[vault]` | `daily_notes_folder`, `daily_note_template`, `dashboard_path`, `date_format`, `prep_heading` | day one, to match your vault layout |
-| `[categories.*]` | `name`, `tag`, `hotkey` per category | to rename categories, change tags, or add hotkeys; rename all five and the same system tracks any daily practice |
-| `[leetcode]` | `topics`, `difficulties` | to adjust the topic taxonomy the dropdowns and dashboard grouping use |
-| `[applications]` | `folder` | where the job-application CSVs live in the vault; the installer creates empty starters there (never overwriting existing data) and the dashboard's Job Applications section reads them |
+| Setting | What it controls |
+|---|---|
+| `[vault] path` | your vault's location (recorded by setup) |
+| `[vault] daily_notes_folder` | where entries are logged; match this to your existing daily notes |
+| `[vault] date_format` | daily-note filename format; match your Obsidian daily-note setting |
+| `[vault] dashboard_path` | where the dashboard note is generated |
+| `[leetcode] username` | unlocks the ⟳ Import button and `prepdojo sync-lc` |
 
-After any change, rerun `python3 generate.py` (see [Updating](#updating)).
+Everything else — category names and tags, the topic taxonomy, hotkeys, the applications folder — has a sensible default you can override by adding the setting to `config.toml`. The full list with defaults: [docs/configuration.md](docs/configuration.md). Renaming the five categories there retargets the whole system to any daily practice.
+
+After any change: quit Obsidian, rerun `python3 generate.py`, restart Obsidian (details in [Updating](#updating)).
 
 
 ## Updating

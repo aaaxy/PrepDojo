@@ -1,104 +1,29 @@
 # ============================================================
-# prepdojo configuration TEMPLATE
+# PrepDojo configuration
 #
-# First-time setup? Run  python3 setup.py  — it creates config.toml from this
-# template, walks you through filling in your vault path, installs everything,
-# and sets up the Obsidian plugins.
+# setup.py creates config.toml from this template and fills in the answers
+# it asks for. Everything not listed here has a sensible default — the full
+# reference, with every setting and its default, is docs/configuration.md.
+# Add any of those settings to this file to override them.
 #
-# To customize later: edit config.toml (your personal copy; this template
-# stays untouched as a clean reference), then redeploy with
-#     python3 generate.py
+# After any change: quit Obsidian, run  python3 generate.py , restart Obsidian.
 # ============================================================
 
 [vault]
 # Absolute path to your Obsidian vault.
 # path = "/absolute/path/to/YourVault"
 
-# Where daily notes live, relative to the vault root
+# Where daily notes live, relative to the vault root.
 daily_notes_folder = "Calendar/Daily Notes"
 
-# Daily note filename format (moment.js syntax, used by Obsidian & QuickAdd)
+# Daily note filename format (must match your Obsidian daily-note setting).
 date_format = "YYYY-MM-DD"
 
-# Daily note template location, relative to the vault root
-daily_note_template = "Templates/Daily Note.md"
-
-# Where to put the generated dashboard note, relative to the vault root
+# Where the dashboard note goes, relative to the vault root.
 dashboard_path = "Interview Prep Dashboard.md"
 
-# The heading inside daily notes that entries are logged under
-prep_heading = "## Interview Prep"
-
-# ------------------------------------------------------------
-# Categories: tag = the inline tag that marks an entry (no '#')
-# name = how it appears on the dashboard
-# hotkey = QuickAdd hotkey (omit to leave unassigned)
-# Modifiers: Mod = Cmd on macOS / Ctrl on Windows-Linux, plus Shift, Alt, Ctrl
-# ------------------------------------------------------------
-
-[categories.lc]
-name = "LeetCode"
-tag = "lc"
-hotkey = { modifiers = ["Mod", "Shift"], key = "L" }
-
-[categories.mlfund]
-name = "ML Fundamentals"
-tag = "mlfund"
-hotkey = { modifiers = ["Mod", "Shift"], key = "M" }
-
-[categories.mlcode]
-name = "ML Coding"
-tag = "mlcode"
-
-[categories.mlsys]
-name = "ML System Design"
-tag = "mlsys"
-# Source types offered when logging (what kind of material it was).
-# sources = ["question", "blog", "video", "course", "paper", "project", "other"]
-
-[categories.bq]
-name = "Behavioral"
-tag = "bq"
-
-# ------------------------------------------------------------
-# LeetCode specifics
-# ------------------------------------------------------------
-
 [leetcode]
-# LeetCode username for `prepdojo sync-lc` (pulls your accepted submissions
-# into daily notes; profile must be public). Leave commented to disable.
+# Your LeetCode username. Lets PrepDojo import your recent accepted
+# submissions into your log (the dashboard's Import button and
+# `prepdojo sync-lc`). Reads public profile data only — no password.
 # username = "your-leetcode-username"
-# Earliest date sync-lc will log entries for (avoids creating daily notes for
-# old solves). Unset = last 7 days. Use "all" to backfill everything.
-# sync_since = "2026-07-01"
-difficulties = ["Easy", "Medium", "Hard"]
-# Topic taxonomy. Keep these lowercase; finer divisions use "main - subtopic"
-# (e.g. "dp - knapsack") and the dashboard groups them under "dp".
-topics = [
-  "arrays & hashing",
-  "two pointers",
-  "sliding window",
-  "stack",
-  "binary search",
-  "linked list",
-  "trees",
-  "heap",
-  "backtracking",
-  "graphs",
-  "bfs/dfs",
-  "dp",
-  "greedy",
-  "intervals",
-  "bit manipulation",
-]
-
-# ------------------------------------------------------------
-# Job application tracking (optional)
-# Folder inside the vault holding applications.csv and resume-versions.csv,
-# used by `prepdojo apps log` and `prepdojo apps stats`.
-# ------------------------------------------------------------
-
-[applications]
-# Hotkey for the in-Obsidian "Log Application" prompts (QuickAdd macro).
-hotkey = { modifiers = ["Mod", "Shift"], key = "A" }
-folder = "Applications"

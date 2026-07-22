@@ -49,6 +49,50 @@ DIST = ROOT / "dist"
 
 CATEGORY_KEYS = ["lc", "mlfund", "mlcode", "mlsys", "bq"]
 
+# Every setting has a default; config.toml only needs what the user wants to
+# change (at minimum: [vault] path). Full reference: docs/configuration.md
+DEFAULT_CONFIG = {
+    "vault": {
+        "daily_notes_folder": "Calendar/Daily Notes",
+        "date_format": "YYYY-MM-DD",
+        "daily_note_template": "Templates/Daily Note.md",
+        "dashboard_path": "Interview Prep Dashboard.md",
+        "prep_heading": "## Interview Prep",
+    },
+    "categories": {
+        "lc": {"name": "LeetCode", "tag": "lc",
+               "hotkey": {"modifiers": ["Mod", "Shift"], "key": "L"}},
+        "mlfund": {"name": "ML Fundamentals", "tag": "mlfund",
+                   "hotkey": {"modifiers": ["Mod", "Shift"], "key": "M"}},
+        "mlcode": {"name": "ML Coding", "tag": "mlcode"},
+        "mlsys": {"name": "ML System Design", "tag": "mlsys"},
+        "bq": {"name": "Behavioral", "tag": "bq"},
+    },
+    "leetcode": {
+        "difficulties": ["Easy", "Medium", "Hard"],
+        "topics": [
+            "arrays & hashing", "two pointers", "sliding window", "stack",
+            "binary search", "linked list", "trees", "heap", "backtracking",
+            "graphs", "bfs/dfs", "dp", "greedy", "intervals", "bit manipulation",
+        ],
+    },
+    "applications": {
+        "folder": "Applications",
+        "hotkey": {"modifiers": ["Mod", "Shift"], "key": "A"},
+    },
+}
+
+
+def deep_merge(base: dict, override: dict) -> dict:
+    """Recursive dict merge; values in `override` win."""
+    out = dict(base)
+    for k, v in override.items():
+        if isinstance(v, dict) and isinstance(out.get(k), dict):
+            out[k] = deep_merge(out[k], v)
+        else:
+            out[k] = v
+    return out
+
 # Source types for the guided ML system design flow; override with
 # `sources = [...]` under [categories.mlsys] in config.toml.
 MLSYS_DEFAULT_SOURCES = ["question", "blog", "video", "course", "paper", "project", "other"]
@@ -88,11 +132,7 @@ def load_config() -> dict:
         print("Created config.toml from config-template.toml — edit it to customize, "
               "then rerun.")
     with open(cfg_path, "rb") as f:
-        cfg = tomllib.load(f)
-    missing = [k for k in CATEGORY_KEYS if k not in cfg.get("categories", {})]
-    if missing:
-        sys.exit(f"config.toml is missing [categories.{missing[0]}]")
-    return cfg
+        return deep_merge(DEFAULT_CONFIG, tomllib.load(f))
 
 
 def replacements(cfg: dict) -> dict:

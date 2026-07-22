@@ -56,7 +56,9 @@ def load_config() -> dict:
         cfg_path.write_bytes(template.read_bytes())
         print("Created config.toml from config-template.toml — edit it to customize.")
     with open(cfg_path, "rb") as f:
-        return tomllib.load(f)
+        # Same defaults as the generator: config.toml only holds overrides.
+        from generate import DEFAULT_CONFIG, deep_merge
+        return deep_merge(DEFAULT_CONFIG, tomllib.load(f))
 
 
 def resolve_vault(args, cfg) -> Path:

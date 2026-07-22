@@ -216,6 +216,43 @@ def install_plugins(vault: str) -> None:
               + " — add them by hand from Settings → Community plugins → Browse")
 
 
+def ask_preferences(created: bool) -> None:
+    """First-run questions; answers are written into config.toml.
+    Enter skips/accepts the default. Non-interactive runs skip quietly."""
+    if not created:
+        return  # existing config: don't re-ask, edit config.toml instead
+    cfg = ROOT / "config.toml"
+    try:
+        print(
+            "\nTwo quick questions (press Enter to skip or accept the default).\n"
+            "\nPrepDojo can import your recent accepted LeetCode submissions\n"
+            "automatically — the dashboard's Import button pulls them into your\n"
+            "log with one click. That needs your LeetCode username (public\n"
+            "profile data only; no password, nothing is posted)."
+        )
+        username = input("LeetCode username (Enter to skip): ").strip().strip('"')
+        print(
+            "\nIf you already keep daily notes in this vault, PrepDojo should\n"
+            "log into the same folder."
+        )
+        folder = input('Daily notes folder [Calendar/Daily Notes]: ').strip().strip('"')
+    except EOFError:
+        print("\n(no interactive terminal — keeping defaults; edit config.toml to change)")
+        return
+    text = cfg.read_text(encoding="utf-8")
+    if username:
+        anchor = '# username = "your-leetcode-username"'
+        if anchor in text:
+            text = text.replace(anchor, f'username = "{username}"', 1)
+    if folder and folder != "Calendar/Daily Notes":
+        anchor = 'daily_notes_folder = "Calendar/Daily Notes"'
+        if anchor in text:
+            text = text.replace(anchor, f'daily_notes_folder = "{folder}"', 1)
+    cfg.write_text(text, encoding="utf-8")
+    if username or (folder and folder != "Calendar/Daily Notes"):
+        print("  recorded in config.toml")
+
+
 def main() -> None:
     if sys.version_info < (3, 9):
         sys.exit(
@@ -240,6 +277,7 @@ def main() -> None:
         sys.exit(f"Not a directory: {vault}\n"
                  "(check the path in config.toml's [vault] section)")
     write_vault_path(vault)
+    ask_preferences(created)
 
     step(2, 3, "Generating and installing vault files")
     ensure_tomli()
