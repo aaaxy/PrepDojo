@@ -62,7 +62,7 @@ If the user includes commentary, decide by length:
 
 ## Which day
 
-Default to today. Respect phrases like "yesterday", "last friday", or explicit dates. Get today's date from the environment/bash, not from memory.
+Default to today. Respect phrases like "yesterday", "last friday", or explicit dates. **Today means the user's local date.** Take it from the conversation context (the host injects the user's current date); do not compute it by running `date` in a sandboxed shell — sandbox timezones can differ from the user's, and an evening session would then log into tomorrow's note. If the context gives no date, ask the user instead of guessing.
 
 ## Writing the entry
 
