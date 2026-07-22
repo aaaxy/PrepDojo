@@ -229,11 +229,14 @@ async function tick() {
   let m = 0;
   try { const st = await app.vault.adapter.stat(CSV_PATH); m = st ? st.mtime : 0; }
   catch (e) { /* no CSV; render once with m = 0 */ }
-  if (m !== lastMtime) { lastMtime = m; await render(); }
+  if (m !== lastMtime) { await render(); lastMtime = m; } // mtime only after a successful render
 }
 await tick();
-const pollId = window.setInterval(async () => {
-  if (!dv.container.isConnected) { window.clearInterval(pollId); return; }
+// A hidden tab detaches this block's DOM without re-running it on return, so
+// never kill the poller on disconnect — just idle until the section is back.
+if (window.prepdojoStatsPoll) window.clearInterval(window.prepdojoStatsPoll);
+window.prepdojoStatsPoll = window.setInterval(async () => {
+  if (!dv.container.isConnected) return;
   try { await tick(); } catch (e) { /* file mid-write; retry next tick */ }
 }, 3000);
 ```
@@ -431,11 +434,14 @@ async function render() {
 let lastMtime = 0;
 async function tick() {
   const s = await app.vault.adapter.stat(PATH);
-  if (s && s.mtime !== lastMtime) { lastMtime = s.mtime; await render(); }
+  if (s && s.mtime !== lastMtime) { await render(); lastMtime = s.mtime; } // mtime only after a successful render
 }
 await tick();
-const pollId = window.setInterval(async () => {
-  if (!dv.container.isConnected) { window.clearInterval(pollId); return; }
+// A hidden tab detaches this block's DOM without re-running it on return, so
+// never kill the poller on disconnect — just idle until the section is back.
+if (window.prepdojoAppsPoll) window.clearInterval(window.prepdojoAppsPoll);
+window.prepdojoAppsPoll = window.setInterval(async () => {
+  if (!dv.container.isConnected) return;
   try { await tick(); } catch (e) { /* file mid-write; retry next tick */ }
 }, 3000);
 ```
