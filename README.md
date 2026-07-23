@@ -97,7 +97,7 @@ Setup asks two optional questions along the way — your LeetCode username (powe
 
 ## Configuration
 
-Setup asks for everything it needs, so most people never open a config file. The answers live in `config.toml` in the repo, which stays deliberately small:
+Setup asks for everything it needs. The answers live in `config.toml` in the repo:
 
 | Setting | What it controls |
 |---|---|
@@ -184,22 +184,6 @@ flowchart LR
     S --> C["Your Claude setup"]
 ```
 
-
-## Repository layout
-
-```
-config-template.toml tracked defaults; copy to config.toml (gitignored) and edit that
-setup.py             one-command first-time setup: config + install + plugin install
-generate.py          renders templates + builds plugin configs from config.toml
-prepdojo.py          CLI: log entries and check streaks from any terminal or script
-templates/
-  vault/             daily note template and dashboard (with placeholders)
-  skill/             Claude skill (with placeholders)
-docs/manual-setup.md fully manual, no-Python setup walkthrough
-.githooks/pre-commit blocks commits that contain a personal absolute path
-dist/                generated output (gitignored)
-config.toml          your personal config (gitignored, created from the template)
-```
 
 ## License
 
