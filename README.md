@@ -125,7 +125,9 @@ The same short ritual covers both kinds of update — pulling a new PrepDojo ver
    - **Hotkeys** — Obsidian's `hotkeys.json` is shared with everything else, so PrepDojo never writes it. If the update added new QuickAdd choices, bind them in Settings → Hotkeys (or merge `dist/obsidian/hotkeys-snippet.json`).
    - **The Claude skill** — it lives in your Claude profile, not the vault. If the update changed it, re-install `dist/claude-skill/lc-logger.skill`.
 
-What an update can and cannot touch, as a rule: generated files that you haven't edited (dashboard, daily-note template, QuickAdd config, logging script) update in place; anything you *have* edited is preserved with a `.new` beside it; your data — daily notes and application CSVs — is never written by the installer, under any flag.
+What an update can and cannot touch, as a rule: generated files that you haven't edited (dashboard, daily-note template, QuickAdd config, logging scripts) update in place; anything you *have* edited is preserved with a `.new` beside it; your data — daily notes and application CSVs — is never written by the installer, under any flag.
+
+That last rule has one consequence worth knowing: if an update adds a column to the applications CSV schema, existing files don't get it automatically (your data is yours). The release notes will say so; the fix is appending the new column name to the header row of your `applications.csv` — rows without a value in it are fine.
 
 Three habits that keep updates smooth:
 
@@ -138,49 +140,61 @@ Three habits that keep updates smooth:
 
 Under the hood, three coordinated layers, all generated from one config file:
 
-- **Capture** — log what you did in seconds, from wherever you are. Three doors into the same log: QuickAdd hotkey actions with dropdown prompts inside Obsidian, an AI logging skill (built for Claude, portable to any LLM agent) that turns "just did two sum" or a pasted LeetCode URL into a correctly formatted entry, and a CLI (`prepdojo.py`) that makes logging scriptable from any terminal, hook, or automation. Every door validates entries, so the log can't drift into inconsistency
+- **Capture** — log what you did in seconds, from wherever you are. Four doors into the same log: one-click dashboard buttons with guided prompts, QuickAdd hotkeys running the same flows from anywhere in Obsidian, an AI logging skill (built for Claude, portable to any LLM agent) that turns "just did two sum" or a pasted LeetCode URL into a correctly formatted entry, and a CLI (`prepdojo.py`) for terminals and automation. A fifth door is automatic: the ⟳ LeetCode import fetches your recent accepted submissions. Every door validates entries, so the log can't drift into inconsistency
 - **Storage** — where your record lives. Plain text files on your own machine: markdown bullets in your daily notes for practice, CSV rows for job applications. Human-readable, grep-able, no database, no lock-in — every tool in this repo is replaceable, and your record outlives all of them
-- **Insight** — how you see your progress. One dashboard note computes it all from your record: streaks, per-topic and per-difficulty breakdowns, a "needs re-review" list, and application stats (daily counts, pipeline, interview rate per resume version), updating live while the note is open. It stores nothing itself, so regenerating, moving, or customizing it is always safe
+- **Insight** — how you see your progress. One dashboard note computes it all from your record: streaks, per-topic and per-difficulty breakdowns with date-range filters, a "needs re-review" list, and application stats (active interviews, offers, milestone summary, interview rate per resume version), updating live while the note is open. It stores nothing itself, so regenerating, moving, or customizing it is always safe
 
 Daily workflow, from a solved problem to insight:
 
 ```mermaid
 flowchart LR
     subgraph capture ["⚡ Capture (seconds)"]
-        subgraph obs ["inside Obsidian"]
-            QA["QuickAdd hotkey<br/>labeled prompts + dropdowns"]
+        subgraph obs ["on the dashboard"]
+            BT["＋ / ✎ buttons<br/>guided prompts + dropdowns"]
+            IMP["⟳ LeetCode import<br/>recent solves, one click"]
+        end
+        subgraph obs2 ["anywhere in Obsidian"]
+            QA["QuickAdd hotkeys<br/>same flows as the buttons"]
             MB["Manual bullet<br/>type it yourself"]
         end
         subgraph cl ["chat with Claude"]
-            CS["lc-logger skill<br/>paste a link or say 'log it'"]
+            CS["AI skill<br/>paste a link or say 'log it'"]
         end
         subgraph term ["terminal / scripts"]
-            CLI["prepdojo CLI<br/>hooks, userscripts, automation"]
+            CLI["prepdojo CLI<br/>hooks, automation, sync-lc"]
         end
     end
-    subgraph storage ["📝 Storage (plain markdown)"]
+    subgraph storage ["📝 Storage (plain files)"]
         DN["Daily notes<br/><code>- LC #200 Number of Islands · Medium · bfs/dfs #lc</code>"]
+        CSV["applications.csv<br/>resume-versions.csv"]
     end
     subgraph insight ["📊 Insight (always current)"]
-        DB["Dataview dashboard<br/>streaks · topic coverage · difficulty mix · needs re-review"]
+        DB["Dataview dashboard<br/>streaks · topics · interviews & offers · resume rates"]
     end
+    BT --> DN
+    IMP --> DN
     QA --> DN
-    CS --> DN
     MB --> DN
+    CS --> DN
     CLI --> DN
+    BT --> CSV
+    CS --> CSV
+    CLI --> CSV
     DN --> DB
+    CSV --> DB
 ```
 
 One-time setup, everything personalized from a single file:
 
 ```mermaid
 flowchart LR
-    CFG["config.toml<br/>paths · tags · categories<br/>topics · hotkeys"] --> GEN["generate.py"]
+    CFG["config.toml<br/>your few answers<br/>+ built-in defaults"] --> GEN["generate.py"]
     GEN --> T["Daily note template"]
     GEN --> D["Dashboard note"]
-    GEN --> Q["QuickAdd actions<br/>+ hotkey bindings"]
-    GEN --> S["lc-logger<br/>Claude skill"]
-    T & D & Q --> V["Your Obsidian vault"]
+    GEN --> Q["QuickAdd actions<br/>+ logging scripts"]
+    GEN --> CSVS["Starter CSVs<br/>(created once, never overwritten)"]
+    GEN --> S["AI logging skill"]
+    T & D & Q & CSVS --> V["Your Obsidian vault"]
     S --> C["Your Claude setup"]
 ```
 
