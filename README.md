@@ -96,10 +96,12 @@ The tables start empty. Your first log fills them, and your streak starts counti
 
 **That's it — you're all set.** From here on, PrepDojo is just the dashboard and your daily grind.
 
+
+---
+
 ---
 
 *Everything below is for later: changing settings, regenerating after a change, and updating PrepDojo itself.*
-
 
 ## Regenerating and updating
 
@@ -126,6 +128,8 @@ The path is remembered in `config.toml`, so a plain `python3 generate.py` works 
 - **The Claude skill** — it lives in your Claude profile, not the vault. If an update changed it, re-install `dist/claude-skill/lc-logger.skill`.
 
 **Habits that keep this smooth**: customize in the repo's `templates/`, not the installed vault copies — except PrepDojo's QuickAdd choices, which are managed from `config.toml`. And remember config changes affect future entries only: rename a tag and old entries keep the old one until you find-and-replace them.
+
+---
 
 ---
 
