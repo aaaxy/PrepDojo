@@ -11,9 +11,10 @@ Usage:
     python3 generate.py --force        # install, overwriting even edited files
 
 The install target is resolved in this order:
-    1. --install /path/to/vault
-    2. PREPDOJO_VAULT environment variable
-    3. `path` under [vault] in config.toml
+    1. positional argument:  python3 generate.py /path/to/YourVault
+    2. --install /path/to/vault
+    3. PREPDOJO_VAULT environment variable
+    4. `path` under [vault] in config.toml
 If none is set, only dist/ is built (with a hint on how to enable install).
 
 Requires Python 3.11+ (uses the standard-library TOML parser). No third-party
@@ -26,6 +27,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 import uuid
@@ -158,6 +160,28 @@ def replacements(cfg: dict) -> dict:
         rep[f"@@TAG_{key.upper()}@@"] = cat["tag"]
         rep[f"@@NAME_{key.upper()}@@"] = cat["name"]
     return rep
+
+
+def record_vault_path(vault: str) -> None:
+    """Persist a positionally-given vault path into config.toml, so later
+    runs can be plain `python3 generate.py`. --install stays a one-off
+    override and is never recorded."""
+    cfg_path = ROOT / "config.toml"
+    if not cfg_path.exists():
+        return
+    text = cfg_path.read_text(encoding="utf-8")
+    line = f'path = "{vault}"'
+    placeholder = '# path = "/absolute/path/to/YourVault"'
+    if re.search(r'^path = ".*"$', text, flags=re.M):
+        new_text = re.sub(r'^path = ".*"$', line.replace("\\", "\\\\"), text,
+                          count=1, flags=re.M)
+    elif placeholder in text:
+        new_text = text.replace(placeholder, line, 1)
+    else:
+        new_text = text.replace("[vault]", f"[vault]\n{line}", 1)
+    if new_text != text:
+        cfg_path.write_text(new_text, encoding="utf-8")
+        print(f"  recorded vault path in config.toml: {vault}")
 
 
 def render(text: str, rep: dict) -> str:
@@ -342,6 +366,9 @@ def write(path: Path, content: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("vault", nargs="?", metavar="VAULT",
+                        help="vault to install into (same as setup.py; optional if "
+                             "config.toml already records the path)")
     parser.add_argument("--install", metavar="VAULT",
                         help="vault to install into (overrides PREPDOJO_VAULT and config)")
     parser.add_argument("--no-install", action="store_true",
@@ -402,7 +429,7 @@ def main() -> None:
 
     # Install by default; the target comes from the flag, the env var, or config.
     target = None if args.no_install else (
-        args.install or os.environ.get("PREPDOJO_VAULT") or cfg["vault"].get("path"))
+        args.vault or args.install or os.environ.get("PREPDOJO_VAULT") or cfg["vault"].get("path"))
     if target is None and not args.no_install:
         print(
             "\nBuilt dist/ only — no vault to install into. To install automatically,\n"
@@ -414,6 +441,8 @@ def main() -> None:
         if not vault.is_dir():
             sys.exit(f"Vault directory not found: {vault}\n"
                      "(check `path` under [vault] in config.toml, or pass --install)")
+        if args.vault:
+            record_vault_path(str(vault))
         print(f"\nInstalling into {vault} ...")
 
         # Manifest of checksums from previous installs. A target file is only

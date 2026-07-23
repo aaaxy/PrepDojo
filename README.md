@@ -11,7 +11,7 @@
 
 Job hunting is a hundred small efforts a day: a LeetCode problem at breakfast, ML review at night, a batch of applications in between. Each one is forgettable — together, they're your entire preparation. PrepDojo makes sure none of it disappears, and everything happens on one dashboard page. Log anything with a single click (or just tell an AI "did two sum today"), and the same page shows the full picture the moment you need it: your streak, which topics are solid and which are shaky, how many applications went out this week, and which resume actually gets you interviews.
 
-Everything stays in plain files on your own computer — no account, no subscription, nothing to lose access to. Built on [Obsidian](https://obsidian.md), free and local-first.
+Everything stays in plain files on your own computer. No account, no subscription, nothing to lose access to. Built on [Obsidian](https://obsidian.md), free and local-first.
 
 ## What you can do
 
@@ -61,84 +61,77 @@ Optional: the Claude desktop app (Cowork) or Claude Code, if you want AI logging
 
 ## Quick start
 
-Get the repo:
+**Step 1 — Get the repo**
 
 ```bash
 git clone https://github.com/aaaxy/PrepDojo.git
 cd PrepDojo
 ```
 
-Prepare your vault:
+**Step 2 — Prepare your vault**
 
 1. Pick the folder that is (or will be) your Obsidian vault. It should live outside this repo.
 2. Open that vault in Obsidian at least once.
 3. On **Obsidian 1.12+**: open **Settings → General →** enable **Command line interface**.
 
-Back in the terminal, run setup with your vault's path:
+**Step 3 — Run setup** with your vault's path, back in the terminal:
 
 ```bash
 python3 setup.py /path/to/YourVault
 ```
 
-Only if you're on **Obsidian older than 1.12** (setup can't install the plugins without the CLI):
+Setup asks two optional questions along the way — your LeetCode username (powers the import button) and your daily-notes folder. Everything else has sensible defaults you can change later; see [docs/configuration.md](docs/configuration.md).
+
+*(Step 3b, only on Obsidian older than 1.12 — setup can't install the plugins without the CLI:)*
 
 1. Open **Settings → Community plugins** and turn off **Restricted mode**.
 2. Click **Browse**, then install and enable **[Dataview](https://obsidian.md/plugins?id=dataview)**, **[QuickAdd](https://obsidian.md/plugins?id=quickadd)**, and **[Calendar](https://obsidian.md/plugins?id=calendar)**.
 
-Finish in Obsidian, whichever version you're on:
+**Step 4 — Finish in Obsidian**, whichever version you're on:
 
 1. Open **Settings → Community plugins**, click the ⚙️ next to **Dataview**, and turn on **Enable JavaScript queries**.
 2. Open the dashboard note in Reading view and click a button. Done.
 
-Tables start empty and fill in as you log — that's normal, not a broken setup.
+The tables start empty. Your first log fills them, and your streak starts counting.
 
-Setup asks two optional questions along the way — your LeetCode username (powers the import button) and your daily-notes folder. Everything else has sensible defaults you can change later; see [Configuration](#configuration).
+**That's it — you're all set.** From here on, PrepDojo is just the dashboard and your daily grind.
 
+---
 
-## Configuration
-
-Setup asks for everything it needs. The answers live in `config.toml` in the repo:
-
-| Setting | What it controls |
-|---|---|
-| `[vault] path` | your vault's location (recorded by setup) |
-| `[vault] daily_notes_folder` | where entries are logged; match this to your existing daily notes |
-| `[vault] date_format` | daily-note filename format; match your Obsidian daily-note setting |
-| `[vault] dashboard_path` | where the dashboard note is generated |
-| `[leetcode] username` | unlocks the ⟳ Import button and `prepdojo sync-lc` |
-
-Everything else — category names and tags, the topic taxonomy, hotkeys, the applications folder — has a sensible default you can override by adding the setting to `config.toml`. The full list with defaults: [docs/configuration.md](docs/configuration.md). Renaming the five categories there retargets the whole system to any daily practice.
-
-After any change: quit Obsidian, rerun `python3 generate.py`, restart Obsidian (details in [Updating](#updating)).
+*Everything below is for later: changing settings, regenerating after a change, and updating PrepDojo itself.*
 
 
-## Updating
+## Regenerating and updating
 
-The same short ritual covers both kinds of update — pulling a new PrepDojo version, or changing your own `config.toml` / templates:
+The dashboard, templates, and logging flows are all generated from `config.toml`. The same three steps apply whether you changed a setting or are updating PrepDojo itself:
 
-1. **Quit Obsidian.** QuickAdd keeps its settings in memory and writes them back on exit; deploying while it runs can silently undo the update.
-2. If updating PrepDojo itself: `git pull`.
-3. **Deploy:** `python3 generate.py` (it installs into the vault recorded in your config; pass `--install /path/to/AnotherVault` to target a different one).
-4. **Read the output.** `installed` and `up to date` mean done. `PRESERVED ... new version written to *.new` means you've hand-edited that file since it was installed — compare it with the `.new` copy and merge at your own pace, or rerun with `--force` to take the new version wholesale.
-5. **Restart Obsidian.** Config files are read at launch, so this is what makes the update live.
-6. Two things never update automatically:
-   - **Hotkeys** — Obsidian's `hotkeys.json` is shared with everything else, so PrepDojo never writes it. If the update added new QuickAdd choices, bind them in Settings → Hotkeys (or merge `dist/obsidian/hotkeys-snippet.json`).
-   - **The Claude skill** — it lives in your Claude profile, not the vault. If the update changed it, re-install `dist/claude-skill/lc-logger.skill`.
+1. Quit Obsidian.
+2. In the repo (after `git pull`, if updating PrepDojo itself), run:
 
-What an update can and cannot touch, as a rule: generated files that you haven't edited (dashboard, daily-note template, QuickAdd config, logging scripts) update in place; anything you *have* edited is preserved with a `.new` beside it; your data — daily notes and application CSVs — is never written by the installer, under any flag.
+```bash
+python3 generate.py /path/to/YourVault
+```
 
-That last rule has one consequence worth knowing: if an update adds a column to the applications CSV schema, existing files don't get it automatically (your data is yours). The release notes will say so; the fix is appending the new column name to the header row of your `applications.csv` — rows without a value in it are fine.
+The path is remembered in `config.toml`, so a plain `python3 generate.py` works from then on.
 
-Three habits that keep updates smooth:
+3. Restart Obsidian and reopen the dashboard note.
 
-1. Customize in the repo's `templates/`, not in the installed vault copies; treat vault files as build outputs. QuickAdd's config is special: it's merged, not replaced — PrepDojo updates only its own choices (matched by ID) and leaves the plugin's settings and any choices you created yourself untouched. The flip side: edits you make to *PrepDojo's* choices in QuickAdd's settings UI are overwritten on the next deploy, so change those via `config.toml` instead.
-2. Config changes affect future entries only. If you rename a tag (say `lc` to `leetcode`), old entries still carry the old tag and drop off the dashboard until you find-and-replace them in your daily notes.
-3. After any update that touches the dashboard, reopen the dashboard note once — the running code in an open tab is the old version until the note re-renders.
+**Reading the output**: `installed` and `up to date` mean done. `PRESERVED ... new version written to *.new` means you've hand-edited that file since it was installed — compare it with the `.new` copy and merge at your own pace, or rerun with `--force` to take the new version wholesale.
 
+**What it can and cannot touch**: generated files you haven't edited update in place; anything you *have* edited is preserved with a `.new` beside it; your data — daily notes and application CSVs — is never written, under any flag. One consequence: if an update adds a column to the applications CSV schema, append the new column name to your `applications.csv` header row yourself (release notes will say so; rows without a value are fine).
+
+**Two things never update automatically**:
+
+- **Hotkeys** — Obsidian's `hotkeys.json` is shared with everything else, so PrepDojo never writes it. If an update added new flows, bind them in Settings → Hotkeys (or merge `dist/obsidian/hotkeys-snippet.json`).
+- **The Claude skill** — it lives in your Claude profile, not the vault. If an update changed it, re-install `dist/claude-skill/lc-logger.skill`.
+
+**Habits that keep this smooth**: customize in the repo's `templates/`, not the installed vault copies — except PrepDojo's QuickAdd choices, which are managed from `config.toml`. And remember config changes affect future entries only: rename a tag and old entries keep the old one until you find-and-replace them.
+
+---
 
 ## System overview
 
-Under the hood, three coordinated layers, all generated from one config file:
+To you, PrepDojo is one dashboard page. Under the hood, that page is the visible tip of three coordinated layers, all generated from one config file:
 
 - **Capture** — log what you did in seconds, from wherever you are. Four doors into the same log: one-click dashboard buttons with guided prompts, QuickAdd hotkeys running the same flows from anywhere in Obsidian, an AI logging skill (built for Claude, portable to any LLM agent) that turns "just did two sum" or a pasted LeetCode URL into a correctly formatted entry, and a CLI (`prepdojo.py`) for terminals and automation. A fifth door is automatic: the ⟳ LeetCode import fetches your recent accepted submissions. Every door validates entries, so the log can't drift into inconsistency
 - **Storage** — where your record lives. Plain text files on your own machine: markdown bullets in your daily notes for practice, CSV rows for job applications. Human-readable, grep-able, no database, no lock-in — every tool in this repo is replaceable, and your record outlives all of them
