@@ -13,45 +13,45 @@ Job hunting is a hundred small efforts a day: a LeetCode problem at breakfast, M
 
 Everything stays in plain files on your own computer. No account, no subscription, nothing to lose access to. Built on [Obsidian](https://obsidian.md), free and local-first.
 
-## What you can do
+## ✨ What you can do
 
-🧩 **Import your LeetCode solves with one click.** Just crushed a few problems on LeetCode? Click ⟳ Import on the dashboard and your recent accepted submissions land in your daily notes.
+⟳ **Import your LeetCode solves with one click.** Just crushed a few problems on LeetCode? Click ⟳ Import on the dashboard and your recent accepted submissions land in your daily notes.
 
 <!-- TODO gif: ⟳ Import click → notice "2 new, 4 already logged" → Needs topic
      rows → ＋ Topic picker. Save as docs/media/import-lc.gif, embed:
 ![Import your LeetCode solves](docs/media/import-lc.gif)
 -->
 
-⚡ **Log any prep work with one click.** An application fired off, an ML concept reviewed at lunch, a mock interview survived: every kind of prep has its own button. Click, answer a prompt or two, logged.
+＋ **Log any prep work with one click.** An application fired off, an ML concept reviewed at lunch, a mock interview survived: every kind of prep has its own button. Click, answer a prompt or two, logged.
 
 <!-- TODO gif: dashboard button → QuickAdd prompts (day, name, difficulty, topic)
      → entry appearing in the daily note. Save as docs/media/log-click.gif, embed:
 ![Logging with one click](docs/media/log-click.gif)
 -->
 
-📮 **Track every application to the end.** Heard back? Hit ✎ Update and log the new status in seconds. Interviews and offers rise to the top.
+✎ **Track every application to the end.** Heard back? Hit ✎ Update and log the new status in seconds. Interviews and offers rise to the top.
 
 <!-- TODO gif: ✎ Update click → fuzzy search "stri" → pick → status HR Call →
      Active table shows the row. Save as docs/media/update-app.gif, embed:
 ![Track every application](docs/media/update-app.gif)
 -->
 
-📄 **A/B test your resume.** Stop guessing which resume works. Every application you send is quietly running an experiment. See the results.
+⇄ **A/B test your resume.** Stop guessing which resume works. Every application you send is quietly running an experiment. See the results.
 
 <!-- TODO screenshot: the "By resume version" table with rates.
      Save as docs/media/resume-rates.png -->
 
-📊 **One page shows it all.** Everything above lives on a single dashboard: your streak burning, topics ranked from solid to shaky, interviews and offers up top, resume rates below. Open it and today's story is already written. No assembly required.
+▦ **One page shows it all.** Everything above lives on a single dashboard: your streak burning, topics ranked from solid to shaky, interviews and offers up top, resume rates below. Open it and today's story is already written. No assembly required.
 
 <!-- TODO screenshot (the money shot): the dashboard in Reading view showing the
      streak line + by-topic and by-difficulty tables. Save as docs/media/dashboard.png -->
 
-🤖 **Or let AI do the logging.** Too tired to click? Toss Claude a LeetCode link or mumble "did two sum today" and the entry writes itself.
+✦ **Or let AI do the logging.** Too tired to click? Toss Claude a LeetCode link or mumble "did two sum today" and the entry writes itself.
 
 <!-- TODO screenshot: a Claude chat where a pasted LC link becomes a logged entry.
      Save as docs/media/log-claude.png -->
 
-## Requirements
+## 📋 Requirements
 
 
 - **[Obsidian](https://obsidian.md)**
@@ -59,7 +59,7 @@ Everything stays in plain files on your own computer. No account, no subscriptio
 
 Optional: the Claude desktop app (Cowork) or Claude Code, if you want AI logging.
 
-## Quick start
+## 🚀 Quick start
 
 **Step 1 — Get the repo**
 
@@ -73,6 +73,7 @@ cd PrepDojo
 1. Pick the folder that is (or will be) your Obsidian vault. It should live outside this repo.
 2. Open that vault in Obsidian at least once.
 3. On **Obsidian 1.12+**: open **Settings → General →** enable **Command line interface**.
+4. Quit Obsidian (setup reopens it when installing the plugins).
 
 **Step 3 — Run setup** with your vault's path, back in the terminal:
 
@@ -96,14 +97,11 @@ The tables start empty. Your first log fills them, and your streak starts counti
 
 **That's it — you're all set.** From here on, PrepDojo is just the dashboard and your daily grind.
 
-
----
-
 ---
 
 *Everything below is for later: changing settings, regenerating after a change, and updating PrepDojo itself.*
 
-## Regenerating and updating
+## 🔄 Regenerating and updating
 
 The dashboard, templates, and logging flows are all generated from `config.toml`. The same three steps apply whether you changed a setting or are updating PrepDojo itself:
 
@@ -129,11 +127,7 @@ The path is remembered in `config.toml`, so a plain `python3 generate.py` works 
 
 **Habits that keep this smooth**: customize in the repo's `templates/`, not the installed vault copies — except PrepDojo's QuickAdd choices, which are managed from `config.toml`. And remember config changes affect future entries only: rename a tag and old entries keep the old one until you find-and-replace them.
 
----
-
----
-
-## System overview
+## 🔍 System overview
 
 To you, PrepDojo is one dashboard page. Under the hood, that page is the visible tip of three coordinated layers, all generated from one config file:
 
@@ -196,7 +190,7 @@ flowchart LR
 ```
 
 
-## License
+## 📜 License
 
 [PolyForm Noncommercial 1.0.0](LICENSE): free to use, modify, and share for any noncommercial purpose (personal use, education, research, nonprofits). Commercial use requires a separate license from the author.
 
