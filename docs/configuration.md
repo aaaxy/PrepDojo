@@ -59,6 +59,12 @@ sources = ["question", "blog", "video", "course", "paper", "project", "other"]
 name = "Behavioral"
 tag = "bq"
 
+[categories.mock]
+name = "Mock Interviews"
+tag = "mock"
+# Session types offered when logging.
+types = ["coding", "behavioral", "system design"]
+
 [leetcode]
 # LeetCode username for the import (dashboard button and `prepdojo sync-lc`).
 # Public profiles only. Unset = import disabled.

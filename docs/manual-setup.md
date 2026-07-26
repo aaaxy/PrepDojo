@@ -64,6 +64,8 @@ ML coding:
 - {{VALUE:What did you implement?}} #mlcode
 ```
 
+Mock interviews use a guided macro instead of a capture (day, session, type from a list, optional reflections): copy `templates/vault/log-mock.js` into your vault's `scripts/` folder (replacing its placeholders), then add a **Macro** choice named exactly `Log Mock Interviews` running that script.
+
 System design uses a guided macro instead of a capture (it has optional topic/source/link/notes fields that a capture format can't skip cleanly): copy `templates/vault/log-mlsys.js` into your vault's `scripts/` folder (replacing its placeholders), then add a **Macro** choice named exactly `Log ML System Design` running that script — same procedure as the job-application scripts in step 5.
 
 Behavioral:

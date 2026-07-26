@@ -49,7 +49,7 @@ ROOT = Path(__file__).parent
 TEMPLATES = ROOT / "templates"
 DIST = ROOT / "dist"
 
-CATEGORY_KEYS = ["lc", "mlfund", "mlcode", "mlsys", "bq"]
+CATEGORY_KEYS = ["lc", "mlfund", "mlcode", "mlsys", "bq", "mock"]
 
 # Every setting has a default; config.toml only needs what the user wants to
 # change (at minimum: [vault] path). Full reference: docs/configuration.md
@@ -69,6 +69,7 @@ DEFAULT_CONFIG = {
         "mlcode": {"name": "ML Coding", "tag": "mlcode"},
         "mlsys": {"name": "ML System Design", "tag": "mlsys"},
         "bq": {"name": "Behavioral", "tag": "bq"},
+        "mock": {"name": "Mock Interviews", "tag": "mock"},
     },
     "leetcode": {
         "difficulties": ["Easy", "Medium", "Hard"],
@@ -154,6 +155,9 @@ def replacements(cfg: dict) -> dict:
         "@@LC_USERNAME@@": cfg.get("leetcode", {}).get("username", ""),
         "@@MLSYS_SOURCES_JSON@@": json.dumps(
             cfg["categories"]["mlsys"].get("sources", MLSYS_DEFAULT_SOURCES)),
+        "@@MOCK_TYPES_JSON@@": json.dumps(
+            cfg["categories"]["mock"].get("types",
+                ["coding", "behavioral", "system design"])),
     }
     for key in CATEGORY_KEYS:
         cat = cfg["categories"][key]
@@ -202,6 +206,26 @@ def build_quickadd(cfg: dict) -> dict:
     choices = []
     for key in CATEGORY_KEYS:
         cat = cfg["categories"][key]
+        if key == "mock":
+            # Guided macro flow (type + reflections) — see log-mock.js
+            choices.append({
+                "id": stable_id(key),
+                "name": f"Log {cat['name']}",
+                "type": "Macro",
+                "command": True,
+                "runOnStartup": False,
+                "macro": {
+                    "id": stable_id("mock-macro"),
+                    "name": f"Log {cat['name']}",
+                    "commands": [{
+                        "name": "prepdojo-log-mock",
+                        "type": "UserScript",
+                        "path": "scripts/prepdojo-log-mock.js",
+                        "settings": {},
+                    }],
+                },
+            })
+            continue
         if key == "mlsys":
             # Guided macro flow (topic/source/link/notes) — see log-mlsys.js
             choices.append({
@@ -407,6 +431,8 @@ def main() -> None:
     write(DIST / "vault" / "scripts" / "prepdojo-log-mlsys.js", mlsys_script)
     upd_script = render((TEMPLATES / "vault" / "update-application.js").read_text(encoding="utf-8"), rep)
     write(DIST / "vault" / "scripts" / "prepdojo-update-application.js", upd_script)
+    mock_script = render((TEMPLATES / "vault" / "log-mock.js").read_text(encoding="utf-8"), rep)
+    write(DIST / "vault" / "scripts" / "prepdojo-log-mock.js", mock_script)
 
     # Obsidian config
     write(DIST / "obsidian" / "daily-notes.json", json.dumps({
@@ -469,6 +495,8 @@ def main() -> None:
              vault / "scripts" / "prepdojo-log-mlsys.js"),
             (DIST / "vault" / "scripts" / "prepdojo-update-application.js",
              vault / "scripts" / "prepdojo-update-application.js"),
+            (DIST / "vault" / "scripts" / "prepdojo-log-mock.js",
+             vault / "scripts" / "prepdojo-log-mock.js"),
             (DIST / "obsidian" / "daily-notes.json", vault / ".obsidian" / "daily-notes.json"),
         ]
         def clean_stale_new(dst: Path) -> None:

@@ -60,6 +60,8 @@ mk(knowledge, "＋ @@NAME_MLFUND@@", "Log @@NAME_MLFUND@@", "#36b37e");
 mk(knowledge, "＋ @@NAME_MLSYS@@", "Log @@NAME_MLSYS@@", "#ff991f");
 const behavioral = row(practice, "Behavioral");
 mk(behavioral, "＋ @@NAME_BQ@@", "Log @@NAME_BQ@@", "#ff7eb6");
+const mock = row(practice, "Mock");
+mk(mock, "＋ @@NAME_MOCK@@", "Log @@NAME_MOCK@@", "#e5484d");
 
 const jobs = section("Where did you apply today?");
 const jobsRow = row(jobs, "");
@@ -90,10 +92,20 @@ topBtn.setAttribute("style",
   "background: var(--background-secondary); color: var(--text-normal); " +
   "box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); display: none;");
 topBtn.onclick = () => {
+  // Ask Obsidian first (cooperates with its renderer), then pin scrollTop to 0
+  // for a moment: sections above re-render as they come back into view and
+  // their height changes would otherwise drag the position back down.
+  const leaf = app.workspace.activeLeaf;
+  if (leaf?.view?.setEphemeralState) leaf.view.setEphemeralState({ scroll: 0 });
   const el = (scroller && scroller.isConnected) ? scroller
-    : app.workspace.activeLeaf?.view?.contentEl
-        ?.querySelector(".markdown-preview-view, .cm-scroller");
-  el?.scrollTo({ top: 0, behavior: "smooth" });
+    : leaf?.view?.contentEl?.querySelector(".markdown-preview-view, .cm-scroller");
+  if (!el) return;
+  el.scrollTop = 0;
+  let tries = 0;
+  const pin = window.setInterval(() => {
+    if (el.scrollTop > 1) el.scrollTop = 0;
+    if (++tries > 20) window.clearInterval(pin); // ~1s of settling
+  }, 50);
 };
 document.body.appendChild(topBtn);
 // visible only while the dashboard is the active file; survives scrolling
@@ -122,7 +134,7 @@ let sortKey = null, sortDir = -1; // view state; Default = fixed category order
 
 async function render() {
   dv.container.innerHTML = "";
-  const tags = {"#@@TAG_LC@@": "@@NAME_LC@@", "#@@TAG_MLFUND@@": "@@NAME_MLFUND@@", "#@@TAG_MLCODE@@": "@@NAME_MLCODE@@", "#@@TAG_MLSYS@@": "@@NAME_MLSYS@@", "#@@TAG_BQ@@": "@@NAME_BQ@@"};
+  const tags = {"#@@TAG_LC@@": "@@NAME_LC@@", "#@@TAG_MLFUND@@": "@@NAME_MLFUND@@", "#@@TAG_MLCODE@@": "@@NAME_MLCODE@@", "#@@TAG_MLSYS@@": "@@NAME_MLSYS@@", "#@@TAG_BQ@@": "@@NAME_BQ@@", "#@@TAG_MOCK@@": "@@NAME_MOCK@@"};
   const logged = i => !i.task || i.completed; // plain bullet, or checked task (legacy)
   const now = dv.date("today");
   const weekAgo = now.minus({ days: 6 });
@@ -190,6 +202,7 @@ async function render() {
     "#@@TAG_MLCODE@@": "🛠️ @@NAME_MLCODE@@",
     "#@@TAG_MLSYS@@": "⚙️ @@NAME_MLSYS@@",
     "#@@TAG_BQ@@": "💬 @@NAME_BQ@@",
+    "#@@TAG_MOCK@@": "🎤 @@NAME_MOCK@@",
   };
   const statRows = Object.keys(tags).map(t => ({
     name: tags[t], cell: "[[#" + sections[t] + "|" + tags[t] + "]]",
@@ -858,6 +871,94 @@ for (const p of dv.pages('"@@DAILY_NOTES_FOLDER@@"')) {
 }
 rows.sort((a, b) => b.day.localeCompare(a.day));
 dv.table(["Date", "Entry"], rows.map(r => [r.link, r.text]));
+```
+
+<br>
+
+---
+
+## 🎤 @@NAME_MOCK@@
+
+> [!note]- Where this data lives
+> Source: your daily notes in `@@DAILY_NOTES_FOLDER@@/`, as plain bullets under `@@PREP_HEADING@@`, e.g. `- Pramp with senior eng · coding · froze on follow-ups, review heaps #@@TAG_MOCK@@`. Session and type are required; reflections are optional. The ＋ button's guided prompts write there for you; you can also type entries directly.
+
+```dataviewjs
+// Entries: session · type · reflections. Types come from a closed list;
+// everything after the type is reflections.
+const TYPES = @@MOCK_TYPES_JSON@@.map(x => x.toLowerCase());
+let rangeDays = null; // view state only; null = all time
+
+function render() {
+  dv.container.innerHTML = "";
+
+  const bar = dv.container.createEl("div", { attr: { style:
+    "display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 6px 0;" } });
+  const manual = bar.createEl("button", { text: "＋ @@NAME_MOCK@@", attr: { style:
+    "border-left: 3px solid #e5484d; background: #e5484d1f; border-radius: 5px;" } });
+  manual.onclick = async () => {
+    const qa = app.plugins.plugins.quickadd;
+    if (!qa || !qa.api || !qa.api.executeChoice) {
+      new Notice("QuickAdd isn't available — is the plugin enabled?"); return;
+    }
+    if (!(qa.settings?.choices || []).some(c => c.name === "Log @@NAME_MOCK@@")) {
+      new Notice("QuickAdd choice 'Log @@NAME_MOCK@@' not found — deploy PrepDojo's QuickAdd config (see README → Updating).");
+      return;
+    }
+    try { await qa.api.executeChoice("Log @@NAME_MOCK@@"); }
+    catch (e) { console.debug("PrepDojo: choice cancelled or failed", e); }
+  };
+
+  const chipRow = dv.container.createEl("div", { attr: { style:
+    "display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 28px 0 6px 0;" } });
+  for (const [label, days] of [["7d", 7], ["14d", 14], ["30d", 30], ["90d", 90], ["All", null]]) {
+    const active = days === rangeDays;
+    const chip = chipRow.createEl("button", { text: label, attr: { style:
+      "border-radius: 5px; padding: 2px 10px;"
+      + (active ? " background: var(--interactive-accent); color: var(--text-on-accent);" : "") } });
+    chip.onclick = () => { rangeDays = days; render(); };
+  }
+
+  const logged = i => !i.task || i.completed;
+  const all = [];
+  for (const p of dv.pages('"@@DAILY_NOTES_FOLDER@@"')) {
+    for (const i of p.file.lists.filter(i => logged(i) && i.text.includes("#@@TAG_MOCK@@"))) {
+      const text = i.text.replace(/#@@TAG_MOCK@@\b/g, "").trim();
+      const parts = text.split("·").map(x => x.trim()).filter(Boolean);
+      let type = "", notes = [];
+      for (const q of parts.slice(1)) {
+        if (!type && TYPES.includes(q.toLowerCase())) type = q.toLowerCase();
+        else notes.push(q);
+      }
+      all.push({ day: p.file.name, link: p.file.link,
+        what: parts[0] || "—", type: type || "—",
+        notes: notes.length ? notes.join(" · ") : "—" });
+    }
+  }
+  all.sort((a, b) => b.day.localeCompare(a.day));
+
+  const now = dv.date("today");
+  const cutoff = rangeDays === null ? null : now.minus({ days: rangeDays - 1 });
+  const rows = cutoff === null ? all
+    : all.filter(r => { const d = dv.date(r.day); return d && d >= cutoff && d <= now; });
+  const rangeText = cutoff === null
+    ? `Showing all time · ${rows.length} sessions`
+    : `Showing last ${rangeDays} days (${cutoff.toFormat("yyyy-MM-dd")} – ${now.toFormat("yyyy-MM-dd")}) · ${rows.length} sessions`;
+  dv.container.createEl("div", { text: rangeText, attr: { style:
+    "font-size: 0.8em; font-style: italic; color: #8a8a8a; margin: 0 0 8px 0;" } });
+
+  // by type, then the sessions themselves
+  const byType = {};
+  for (const r of rows) byType[r.type] = (byType[r.type] ?? 0) + 1;
+  if (rows.length) {
+    dv.header(3, "By type");
+    dv.table(["Type", "Count"], Object.entries(byType).sort((a, b) => b[1] - a[1]));
+  }
+  dv.header(3, "Sessions");
+  dv.table(["Date", "Session", "Type", "Reflections"],
+    rows.map(r => [r.link, r.what, r.type, r.notes]));
+}
+
+render();
 ```
 
 <br>
