@@ -296,7 +296,7 @@ async function render() {
   if (!apps.length) { dv.paragraph("*No applications logged yet.*"); return; }
   const now = dv.date("today");
   const weekAgo = now.minus({ days: 6 });
-  const interviewed = r => /Phone Screen|Onsite|Team Match|Offer/i.test(r["Stage History"] || "");
+  const interviewed = r => /HM Interview|Phone Screen|Onsite|Team Match|Offer/i.test(r["Stage History"] || "");
 
   // headline: velocity
   const dated = apps.filter(r => r["Applied Date"]);
@@ -369,7 +369,7 @@ async function render() {
         r["Location"] || "—", r["Comp Range"] || "—", r["Follow-up Date"] || "—"]));
   }
 
-  const INTERVIEWING = ["HR Call", "OA", "Phone Screen", "Onsite", "Team Match"];
+  const INTERVIEWING = ["HR Call", "HM Interview", "OA", "Phone Screen", "Onsite", "Team Match"];
   const inInterviews = apps.filter(r => INTERVIEWING.includes((r["Status"] || "").trim()));
   dv.header(3, "Active");
   dv.container.createEl("div", { text:
