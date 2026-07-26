@@ -262,6 +262,7 @@ window.prepdojoStatsPoll = window.setInterval(async () => {
 
 > [!note]- Where this data lives
 > Source: `@@APPLICATIONS_FOLDER@@/applications.csv` (+ `resume-versions.csv`). Log with the ＋ Application button (or `prepdojo apps log`, a CSV editor, any spreadsheet app — all write the same file); this section re-reads it and updates live while the note is open.
+> Duplicates are caught automatically: logging a company and position you already track is refused with a notice — use ✎ Update to change the existing row instead.
 
 ```dataviewjs
 // Self-refreshing: reads the CSV uncached (dv.io.csv caches and misses
@@ -467,6 +468,7 @@ window.prepdojoAppsPoll = window.setInterval(async () => {
 
 > [!note]- Where this data lives
 > Source: your daily notes in `@@DAILY_NOTES_FOLDER@@/`, as plain bullets under `@@PREP_HEADING@@`, e.g. `- LC #200 Number of Islands · Medium · bfs/dfs #@@TAG_LC@@`. The Import and ＋ buttons write there for you; you can also type entries directly. This section recomputes from those notes every time it renders.
+> Duplicates are caught automatically: the ⟳ Import (and the CLI) refuse the same problem twice in one day, with a notice. Solving a problem again on a later day is not a duplicate — it counts as a review and shows in the Attempt column.
 
 ```dataviewjs
 // Range-filtered view of logged problems, with one-click import of recent
@@ -670,9 +672,25 @@ function render() {
   const cutoff = rangeDays === null ? null : now.minus({ days: rangeDays - 1 });
   const rows = cutoff === null ? all
     : all.filter(r => { const d = dv.date(r.day); return d && d >= cutoff && d <= now; });
+  // Repeats are derived, never marked: same problem number (or same text for
+  // unnumbered entries) on different days = another attempt at that problem.
+  const probKey = r => { const m = /#(\d+)/.exec(r.problem); return m ? m[1] : r.problem.toLowerCase(); };
+  const attemptsTotal = {};
+  for (const r of all) attemptsTotal[probKey(r)] = (attemptsTotal[probKey(r)] ?? 0) + 1;
+  const seen = {};
+  for (let i = all.length - 1; i >= 0; i--) { // chronological (all is sorted desc)
+    const k = probKey(all[i]);
+    seen[k] = (seen[k] ?? 0) + 1;
+    all[i].attempt = seen[k];
+    all[i].totalAttempts = attemptsTotal[k];
+  }
+
+  const distinctInRange = new Set(rows.map(probKey)).size;
+  const solvesText = distinctInRange < rows.length
+    ? `${rows.length} solves (${distinctInRange} problems)` : `${rows.length} solves`;
   const rangeText = rangeDays === null
-    ? `Showing all time · ${rows.length} solves`
-    : `Showing last ${rangeDays} days (${cutoff.toFormat("yyyy-MM-dd")} – ${now.toFormat("yyyy-MM-dd")}) · ${rows.length} solves`;
+    ? `Showing all time · ${solvesText}`
+    : `Showing last ${rangeDays} days (${cutoff.toFormat("yyyy-MM-dd")} – ${now.toFormat("yyyy-MM-dd")}) · ${solvesText}`;
   dv.container.createEl("div", { text: rangeText, attr: { style:
     "font-size: 0.8em; font-style: italic; color: #8a8a8a; margin: 0 0 8px 0;" } });
 
@@ -700,10 +718,16 @@ function render() {
   const byTopic = {};
   for (const r of rows) (byTopic[r.mainTopic] ??= []).push(r);
   dv.header(3, "By topic");
-  dv.table(["Topic", "Count", "Problems"],
+  dv.table(["Topic", "Problems", "Solves", "Which"],
     Object.entries(byTopic)
       .sort((a, b) => b[1].length - a[1].length)
-      .map(([topic, rs]) => [topic, rs.length, rs.map(r => r.problem).join(", ")]));
+      .map(([topic, rs]) => {
+        const byKey = {};
+        for (const r of rs) byKey[probKey(r)] = r; // one representative per problem
+        const names = Object.values(byKey).map(r =>
+          r.totalAttempts > 1 ? `${r.problem} ×${r.totalAttempts}` : r.problem);
+        return [topic, Object.keys(byKey).length, rs.length, names.join(", ")];
+      }));
 
   // By difficulty
   const byDiff = {};
@@ -716,8 +740,10 @@ function render() {
 
   // Problems in range
   dv.header(3, "Problems");
-  dv.table(["Date", "Problem", "Difficulty", "Topic", "Notes"],
-    rows.map(r => [r.link, r.problem, r.diff, r.topic, r.notes]));
+  dv.table(["Date", "Problem", "Attempt", "Difficulty", "Topic", "Notes"],
+    rows.map(r => [r.link, r.problem,
+      r.totalAttempts > 1 ? `${r.attempt} of ${r.totalAttempts}` : "",
+      r.diff, r.topic, r.notes]));
 }
 
 render();
