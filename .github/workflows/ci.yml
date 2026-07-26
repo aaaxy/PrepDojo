@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  smoke:
+    name: Generation smoke (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: TOML parser for Python < 3.11
+        if: matrix.python-version == '3.9' || matrix.python-version == '3.10'
+        run: pip install tomli
+      - name: Run smoke test
+        run: python ci/smoke_test.py
+
+  generated-output:
+    name: Generated JS + QuickAdd contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Generate dist from template defaults
+        run: python generate.py --no-install
+      - name: Check generated output
+        run: node ci/check_generated.mjs dist
+
+  privacy:
+    name: No personal paths in tracked files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan tracked files
+        run: |
+          pattern='(/Users/[^/[:space:]]+|/home/[^/[:space:]]+|[A-Za-z]:\\Users\\[^\\[:space:]]+)'
+          hits=$(git grep -nE "$pattern" -- ':(exclude).githooks/' ':(exclude).github/' || true)
+          if [ -n "$hits" ]; then
+            echo "Personal absolute paths found in tracked files:"
+            echo "$hits"
+            exit 1
+          fi
+          echo "clean"

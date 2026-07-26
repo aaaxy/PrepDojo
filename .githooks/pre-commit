@@ -13,7 +13,9 @@
 
 # Scan only added/changed lines in the staged diff. The hook file itself is
 # excluded, since it necessarily contains these path patterns as examples.
-added=$(git diff --cached --unified=0 --no-color -- . ':(exclude).githooks/' \
+# .github/ is excluded too: the CI workflow contains this same pattern as
+# its own scan pattern, which would otherwise trip the hook.
+added=$(git diff --cached --unified=0 --no-color -- . ':(exclude).githooks/' ':(exclude).github/' \
         | grep '^+' | grep -v '^+++')
 
 pattern='(/Users/[^/[:space:]]+|/home/[^/[:space:]]+|[A-Za-z]:\\Users\\[^\\[:space:]]+)'
