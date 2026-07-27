@@ -48,15 +48,6 @@ Everything stays in plain files on your own computer. No account, no subscriptio
 
 ✦ **Or let AI do the logging.** Too tired to click? Toss Claude a LeetCode link or mumble "did two sum today" and the entry writes itself. Applications too: "Stripe moved me to phone screen" updates your tracker.
 
-Install once, in Claude Code or the Claude app:
-
-```
-/plugin marketplace add aaaxy/PrepDojo
-/plugin install prepdojo@prepdojo
-```
-
-Your settings travel with your vault (setup writes a small `prepdojo.json` there), so the plugin needs no configuration and keeps working when you change settings.
-
 <!-- TODO screenshot: a Claude chat where a pasted LC link becomes a logged entry.
      Save as docs/media/log-claude.png -->
 
@@ -103,6 +94,15 @@ Setup asks two optional questions along the way — your LeetCode username (powe
 2. Open the dashboard note in Reading view and click a button. Done.
 
 The tables start empty. Your first log fills them, and your streak starts counting.
+
+**Step 5 (optional) — Add AI logging.** Install once, in Claude Code or the Claude app:
+
+```
+/plugin marketplace add aaaxy/PrepDojo
+/plugin install prepdojo@prepdojo
+```
+
+Your settings travel with your vault (setup writes a small `prepdojo.json` there), so the plugin needs no configuration and keeps working when you change settings.
 
 **That's it — you're all set.** From here on, PrepDojo is just the dashboard and your daily grind.
 
