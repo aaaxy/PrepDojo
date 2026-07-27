@@ -97,9 +97,54 @@ Version ID,Short Description,Emphasis / Angle,Target Role Type,File Path,Date La
 
 The ＋ Application, ✎ Update, and ＋ Resume version buttons on the dashboard run these three choices; you can also edit the CSVs in any spreadsheet app (export as CSV, keep the header row).
 
-## 6. Claude skill (optional)
+## 6. AI logging (optional)
 
-If you use Claude Cowork or Claude Code with your vault as a working folder, copy `templates/skill/SKILL.md`, replace the same placeholders as above (plus `@@DATE_FORMAT@@`, `@@DAILY_NOTE_TEMPLATE@@`, `@@DASHBOARD_PATH@@`, `@@TOPICS_INLINE@@`, `@@DIFFICULTIES_PIPE@@`), and install it as a skill named `lc-logger`. Then pasting a LeetCode link into a session is enough to log a problem.
+If you use Claude Code or the Claude app, install the PrepDojo plugin (see "AI logging" in the README). The plugin reads a small `prepdojo.json` at your vault root. `generate.py` normally writes it; without Python, create it by hand with the same values you used for the placeholders above:
+
+```json
+{
+  "prepdojo": {"schema": 1},
+  "vault": {
+    "daily_notes_folder": "Calendar/Daily Notes",
+    "date_format": "YYYY-MM-DD",
+    "daily_note_template": "Templates/Daily Note.md",
+    "dashboard_path": "Interview Prep Dashboard.md",
+    "prep_heading": "## Interview Prep"
+  },
+  "entry_format": {"separator": " · "},
+  "categories": {
+    "lc": {"name": "LeetCode", "tag": "lc"},
+    "mlfund": {"name": "ML Fundamentals", "tag": "mlfund"},
+    "mlcode": {"name": "ML Coding", "tag": "mlcode"},
+    "mlsys": {"name": "ML System Design", "tag": "mlsys",
+              "sources": ["question", "blog", "video", "course", "paper", "project", "other"]},
+    "bq": {"name": "Behavioral", "tag": "bq"},
+    "mock": {"name": "Mock Interviews", "tag": "mock",
+             "types": ["coding", "behavioral", "system design"]}
+  },
+  "leetcode": {
+    "difficulties": ["Easy", "Medium", "Hard"],
+    "topics": ["arrays & hashing", "two pointers", "sliding window", "stack",
+               "binary search", "linked list", "trees", "heap", "backtracking",
+               "graphs", "bfs/dfs", "dp", "greedy", "intervals", "bit manipulation"],
+    "import_configured": false
+  },
+  "applications": {
+    "folder": "Applications",
+    "applications_csv": "applications.csv",
+    "resume_versions_csv": "resume-versions.csv",
+    "applications_columns": ["Company", "Position Title", "Req ID", "Job Link",
+      "Location", "Remote?", "Comp Range", "Applied Date", "Resume Version",
+      "Cover Letter", "Referral", "Status", "Stage History", "Last Update",
+      "Next Action", "Recruiter / Contact", "Notes", "Follow-up Date"],
+    "resume_versions_columns": ["Version ID", "Short Description",
+      "Emphasis / Angle", "Target Role Type", "File Path",
+      "Date Last Updated", "Notes"]
+  }
+}
+```
+
+Then pasting a LeetCode link into a session is enough to log a problem.
 
 ## 7. Try it
 

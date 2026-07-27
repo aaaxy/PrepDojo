@@ -9,6 +9,8 @@ config.toml
 CLAUDE.md
 CLAUDE.local.md
 .claude-*
+# ...except the plugin manifests, which ARE the shipped product (PRE-31)
+!.claude-plugin/
 **/.claude/worktrees/
 .cursorrules
 .cursor/

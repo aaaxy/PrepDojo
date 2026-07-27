@@ -1,0 +1,20 @@
+{
+  "name": "prepdojo",
+  "displayName": "PrepDojo",
+  "description": "AI logging for PrepDojo: turn 'did two sum today' or a pasted LeetCode link into a tracked entry, and log or update job applications — all into your own Obsidian vault.",
+  "version": "0.1.0",
+  "author": {
+    "name": "aaaxy",
+    "url": "https://github.com/aaaxy"
+  },
+  "homepage": "https://github.com/aaaxy/PrepDojo",
+  "repository": "https://github.com/aaaxy/PrepDojo",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "keywords": [
+    "obsidian",
+    "leetcode",
+    "interview-prep",
+    "job-applications",
+    "logging"
+  ]
+}

@@ -46,7 +46,16 @@ Everything stays in plain files on your own computer. No account, no subscriptio
 <!-- TODO screenshot (the money shot): the dashboard in Reading view showing the
      streak line + by-topic and by-difficulty tables. Save as docs/media/dashboard.png -->
 
-✦ **Or let AI do the logging.** Too tired to click? Toss Claude a LeetCode link or mumble "did two sum today" and the entry writes itself.
+✦ **Or let AI do the logging.** Too tired to click? Toss Claude a LeetCode link or mumble "did two sum today" and the entry writes itself. Applications too: "Stripe moved me to phone screen" updates your tracker.
+
+Install once, in Claude Code or the Claude app:
+
+```
+/plugin marketplace add aaaxy/PrepDojo
+/plugin install prepdojo@prepdojo
+```
+
+Your settings travel with your vault (setup writes a small `prepdojo.json` there), so the plugin needs no configuration and keeps working when you change settings.
 
 <!-- TODO screenshot: a Claude chat where a pasted LC link becomes a logged entry.
      Save as docs/media/log-claude.png -->
@@ -123,7 +132,9 @@ The path is remembered in `config.toml`, so a plain `python3 generate.py` works 
 **Two things never update automatically**:
 
 - **Hotkeys** — Obsidian's `hotkeys.json` is shared with everything else, so PrepDojo never writes it. If an update added new flows, bind them in Settings → Hotkeys (or merge `dist/obsidian/hotkeys-snippet.json`).
-- **The Claude skill** — it lives in your Claude profile, not the vault. If an update changed it, re-install `dist/claude-skill/lc-logger.skill`.
+- **The AI plugin** — it updates through Claude's plugin manager, not `generate.py`. After a PrepDojo release, refresh it from the `/plugin` menu in Claude.
+
+*(Upgrading from the old `.skill` file? The plugin replaces it — remove the `lc-logger` skill from your Claude profile after installing the plugin. `dist/claude-skill/` still builds for now, but it is deprecated and will be removed in a future release.)*
 
 **Habits that keep this smooth**: customize in the repo's `templates/`, not the installed vault copies — except PrepDojo's QuickAdd choices, which are managed from `config.toml`. And remember config changes affect future entries only: rename a tag and old entries keep the old one until you find-and-replace them.
 
@@ -131,7 +142,7 @@ The path is remembered in `config.toml`, so a plain `python3 generate.py` works 
 
 To you, PrepDojo is one dashboard page. Under the hood, that page is the visible tip of three coordinated layers, all generated from one config file:
 
-- **Capture** — log what you did in seconds, from wherever you are. Four doors into the same log: one-click dashboard buttons with guided prompts, QuickAdd hotkeys running the same flows from anywhere in Obsidian, an AI logging skill (built for Claude, portable to any LLM agent) that turns "just did two sum" or a pasted LeetCode URL into a correctly formatted entry, and a CLI (`prepdojo.py`) for terminals and automation. A fifth door is automatic: the ⟳ LeetCode import fetches your recent accepted submissions. Every door validates entries, so the log can't drift into inconsistency
+- **Capture** — log what you did in seconds, from wherever you are. Four doors into the same log: one-click dashboard buttons with guided prompts, QuickAdd hotkeys running the same flows from anywhere in Obsidian, an AI logging plugin for Claude (its skills read plain `prepdojo.json`, so any LLM agent can follow the same contract) that turns "just did two sum" or a pasted LeetCode URL into a correctly formatted entry, and a CLI (`prepdojo.py`) for terminals and automation. A fifth door is automatic: the ⟳ LeetCode import fetches your recent accepted submissions. Every door validates entries, so the log can't drift into inconsistency
 - **Storage** — where your record lives. Plain text files on your own machine: markdown bullets in your daily notes for practice, CSV rows for job applications. Human-readable, grep-able, no database, no lock-in — every tool in this repo is replaceable, and your record outlives all of them
 - **Insight** — how you see your progress. One dashboard note computes it all from your record: streaks, per-topic and per-difficulty breakdowns with date-range filters, a "needs re-review" list, and application stats (active interviews, offers, milestone summary, interview rate per resume version), updating live while the note is open. It stores nothing itself, so regenerating, moving, or customizing it is always safe
 
@@ -149,7 +160,7 @@ flowchart LR
             MB["Manual bullet<br/>type it yourself"]
         end
         subgraph cl ["chat with Claude"]
-            CS["AI skill<br/>paste a link or say 'log it'"]
+            CS["AI plugin<br/>paste a link or say 'log it'"]
         end
         subgraph term ["terminal / scripts"]
             CLI["prepdojo CLI<br/>hooks, automation, sync-lc"]
@@ -184,9 +195,8 @@ flowchart LR
     GEN --> D["Dashboard note"]
     GEN --> Q["QuickAdd actions<br/>+ logging scripts"]
     GEN --> CSVS["Starter CSVs<br/>(created once, never overwritten)"]
-    GEN --> S["AI logging skill"]
-    T & D & Q & CSVS --> V["Your Obsidian vault"]
-    S --> C["Your Claude setup"]
+    GEN --> PJ["prepdojo.json<br/>(read by the AI plugin)"]
+    T & D & Q & CSVS & PJ --> V["Your Obsidian vault"]
 ```
 
 

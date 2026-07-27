@@ -1,0 +1,19 @@
+{
+  "name": "prepdojo",
+  "owner": {
+    "name": "aaaxy",
+    "url": "https://github.com/aaaxy"
+  },
+  "metadata": {
+    "description": "PrepDojo's AI logging plugin: log interview prep and job applications into your Obsidian vault by chat.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "prepdojo",
+      "source": "./",
+      "description": "Log LeetCode solves, prep work, and job applications into your PrepDojo-enabled Obsidian vault by chat.",
+      "category": "productivity"
+    }
+  ]
+}

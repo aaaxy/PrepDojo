@@ -10,6 +10,7 @@ non-interactively. Exits nonzero on the first failure.
 Run locally:  python3 ci/smoke_test.py
 """
 
+import json
 import shutil
 import subprocess
 import sys
@@ -30,6 +31,7 @@ EXPECTED_VAULT_FILES = [
     ".obsidian/plugins/quickadd/data.json",
     "Applications/applications.csv",
     "Applications/resume-versions.csv",
+    "prepdojo.json",
 ]
 
 fail_count = 0
@@ -73,6 +75,20 @@ def main():
     check(not leftovers, "no unreplaced @@placeholders@@ (%s)" % leftovers)
     check('path = "%s"' % vault in (repo / "config.toml").read_text(encoding="utf-8"),
           "positional vault path recorded in config.toml")
+
+    print("prepdojo.json: contract for the plugin skills")
+    try:
+        pj = json.loads((vault / "prepdojo.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        pj = {}
+    check(pj.get("prepdojo", {}).get("schema") == 1, "parses, schema 1")
+    check(pj.get("vault", {}).get("prep_heading", "").startswith("#"),
+          "carries the prep heading")
+    check(pj.get("leetcode", {}).get("topics"), "carries the topic taxonomy")
+    check("Stage History" in pj.get("applications", {}).get("applications_columns", []),
+          "carries the applications CSV schema")
+    check(set(pj.get("leetcode", {})) <= {"difficulties", "topics", "import_configured"},
+          "leetcode section carries presence only, never the username")
 
     print("generate.py: rerun is idempotent")
     r = run(["generate.py"], repo)  # no arg: uses recorded path

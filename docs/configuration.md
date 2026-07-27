@@ -7,6 +7,10 @@ it: quit Obsidian, run `python3 generate.py`, restart Obsidian.
 
 The values shown are the defaults.
 
+Applying a change also refreshes `prepdojo.json` at your vault root — the
+small file the PrepDojo AI plugin reads, so chat logging always matches your
+settings. `generate.py` owns that file; there is nothing to edit in it by hand.
+
 ```toml
 [vault]
 # Absolute path to your Obsidian vault (setup.py records this for you).

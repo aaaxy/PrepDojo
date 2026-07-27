@@ -100,6 +100,10 @@ def deep_merge(base: dict, override: dict) -> dict:
 # `sources = [...]` under [categories.mlsys] in config.toml.
 MLSYS_DEFAULT_SOURCES = ["question", "blog", "video", "course", "paper", "project", "other"]
 
+# Session types for mock-interview logging; override with `types = [...]`
+# under [categories.mock] in config.toml.
+MOCK_DEFAULT_TYPES = ["coding", "behavioral", "system design"]
+
 # Starter headers for the job-application CSVs (kept in sync with prepdojo.py
 # and the dashboard's Job Applications section).
 APPLICATIONS_HEADER = ("Company,Position Title,Req ID,Job Link,Location,Remote?,"
@@ -156,8 +160,7 @@ def replacements(cfg: dict) -> dict:
         "@@MLSYS_SOURCES_JSON@@": json.dumps(
             cfg["categories"]["mlsys"].get("sources", MLSYS_DEFAULT_SOURCES)),
         "@@MOCK_TYPES_JSON@@": json.dumps(
-            cfg["categories"]["mock"].get("types",
-                ["coding", "behavioral", "system design"])),
+            cfg["categories"]["mock"].get("types", MOCK_DEFAULT_TYPES)),
     }
     for key in CATEGORY_KEYS:
         cat = cfg["categories"][key]
@@ -366,6 +369,53 @@ def build_quickadd(cfg: dict) -> dict:
     }
 
 
+def build_prepdojo_json(cfg: dict) -> str:
+    """Machine-readable install contract for the AI plugin skills (PRE-31).
+
+    Installed at the vault root as prepdojo.json and tracked in the byte
+    manifest. The PrepDojo plugin skills read this file at session start to
+    learn the user's paths, tags, topics, and CSV schema; generate.py is the
+    only writer. Output is deterministic so reruns stay byte-identical.
+    """
+    v, lc = cfg["vault"], cfg["leetcode"]
+    cats = {}
+    for key in CATEGORY_KEYS:
+        cat = cfg["categories"][key]
+        entry = {"name": cat["name"], "tag": cat["tag"]}
+        if key == "mlsys":
+            entry["sources"] = cat.get("sources", MLSYS_DEFAULT_SOURCES)
+        if key == "mock":
+            entry["types"] = cat.get("types", MOCK_DEFAULT_TYPES)
+        cats[key] = entry
+    doc = {
+        "prepdojo": {"schema": 1},
+        "vault": {
+            "daily_notes_folder": v["daily_notes_folder"],
+            "date_format": v["date_format"],
+            "daily_note_template": v["daily_note_template"],
+            "dashboard_path": v["dashboard_path"],
+            "prep_heading": v["prep_heading"],
+        },
+        "entry_format": {"separator": " · "},
+        "categories": cats,
+        "leetcode": {
+            "difficulties": lc["difficulties"],
+            "topics": lc["topics"],
+            # Presence only, never the username itself: the skills only need
+            # to know whether the import button/CLI is available to point to.
+            "import_configured": bool(lc.get("username")),
+        },
+        "applications": {
+            "folder": cfg["applications"]["folder"],
+            "applications_csv": "applications.csv",
+            "resume_versions_csv": "resume-versions.csv",
+            "applications_columns": APPLICATIONS_HEADER.rstrip("\n").split(","),
+            "resume_versions_columns": RESUME_VERSIONS_HEADER.rstrip("\n").split(","),
+        },
+    }
+    return json.dumps(doc, indent=2, ensure_ascii=False) + "\n"
+
+
 def build_hotkeys(cfg: dict) -> dict:
     out = {}
     for key in CATEGORY_KEYS:
@@ -445,13 +495,19 @@ def main() -> None:
     write(DIST / "obsidian" / "hotkeys-snippet.json",
           json.dumps(build_hotkeys(cfg), indent=2) + "\n")
 
-    # Claude skill
+    # Machine-readable contract for the AI plugin skills (PRE-31)
+    write(DIST / "vault" / "prepdojo.json", build_prepdojo_json(cfg))
+
+    # Claude skill (deprecated: superseded by the PrepDojo plugin — see README.
+    # Kept for one more release so existing installs keep working.)
     skill = render((TEMPLATES / "skill" / "SKILL.md").read_text(encoding="utf-8"), rep)
     write(DIST / "claude-skill" / "lc-logger" / "SKILL.md", skill)
     skill_pkg = DIST / "claude-skill" / "lc-logger.skill"
     with zipfile.ZipFile(skill_pkg, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("lc-logger/SKILL.md", skill)
     print(f"  wrote {skill_pkg.relative_to(ROOT)}")
+    print("  note: dist/claude-skill is deprecated — install the PrepDojo "
+          "plugin instead (README, AI logging)")
 
     # Install by default; the target comes from the flag, the env var, or config.
     target = None if args.no_install else (
@@ -498,6 +554,7 @@ def main() -> None:
             (DIST / "vault" / "scripts" / "prepdojo-log-mock.js",
              vault / "scripts" / "prepdojo-log-mock.js"),
             (DIST / "obsidian" / "daily-notes.json", vault / ".obsidian" / "daily-notes.json"),
+            (DIST / "vault" / "prepdojo.json", vault / "prepdojo.json"),
         ]
         def clean_stale_new(dst: Path) -> None:
             """A .new copy is only meaningful while its original is unresolved;
