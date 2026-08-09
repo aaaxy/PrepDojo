@@ -1,6 +1,6 @@
 ---
 name: prepdojo-logging
-description: Log interview-prep work into the user's PrepDojo-enabled Obsidian vault (daily notes read by a Dataview dashboard). Trigger whenever the user pastes a leetcode.com problem URL — even with no other words — or says anything like "log this", "log this lc problem", "just did/solved a problem", "add two sum to my log", "did 239 today", or asks to backfill a solve for a past day ("log this for yesterday"). Also trigger for logging the other prep categories PrepDojo tracks — ML fundamentals reviewed, ML coding practice, ML system design study, behavioral stories, and mock interviews. Do NOT trigger when the user wants help solving a problem, explaining an algorithm, or changing the dashboard itself. For bulk history import ("sync my leetcode"), don't import — see the "Out of scope" section.
+description: Log interview-prep work into the user's PrepDojo-enabled Obsidian vault (daily notes read by a Dataview dashboard). Trigger whenever the user pastes a leetcode.com problem URL — even with no other words — or says anything like "log this", "log this lc problem", "just did/solved a problem", "add two sum to my log", "did 239 today", or asks to backfill a solve for a past day ("log this for yesterday"). Also trigger for logging the other prep categories PrepDojo tracks — ML fundamentals reviewed, ML coding practice, ML system design study, behavioral stories, mock interviews, and real interviews ("had my Stripe onsite today"). Do NOT trigger when the user wants help solving a problem, explaining an algorithm, or changing the dashboard itself. For bulk history import ("sync my leetcode"), don't import — see the "Out of scope" section.
 ---
 
 # PrepDojo Logging
@@ -88,6 +88,7 @@ Same rules for non-LC prep (plain bullet under the prep heading, tag last, ` · 
 - **ML system design** (`mlsys`): `- <what> · <topic> · <source> · <link> · <notes> #mlsys` — every field after `<what>` is optional; omit empty fields entirely (no `· ·` litter). `<source>` must come from `config.categories.mlsys.sources`; links start with http.
 - **Behavioral** (`bq`): `- <story/question practiced> #bq`
 - **Mock interviews** (`mock`): `- <session: who/where> · <type> · <notes> #mock` — `<type>` must come from `config.categories.mock.types`; notes optional, omitted when empty.
+- **Real interviews** (`interview`): `- <Company — Position> · <round> · Q: <questions asked> · <reflections> #interview` — `<round>` must come from `config.categories.interview.rounds`; the `Q: ` prefix marks the questions field; questions and reflections are optional and omitted when empty. If the company matches a row in applications.csv, ask whether to also update that application's Status to the round (append to Stage History, set Last Update; re-read the CSV immediately before writing).
 
 ## Out of scope
 

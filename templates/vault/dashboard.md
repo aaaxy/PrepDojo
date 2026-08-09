@@ -67,6 +67,7 @@ const jobs = section("Where did you apply today?");
 const jobsRow = row(jobs, "");
 mk(jobsRow, "＋ Application", "Log Application", "#00b8d9");
 mk(jobsRow, "✎ Update application", "Update Application", "#00b8d9");
+mk(jobsRow, "＋ Interview", "Log @@NAME_INTERVIEW@@", "#6366f1");
 mk(jobsRow, "＋ Resume version", "Add Resume Version", "#8993a4");
 
 // Floating back-to-top button, pinned to the viewport's bottom right while
@@ -134,7 +135,7 @@ let sortKey = null, sortDir = -1; // view state; Default = fixed category order
 
 async function render() {
   dv.container.innerHTML = "";
-  const tags = {"#@@TAG_LC@@": "@@NAME_LC@@", "#@@TAG_MLFUND@@": "@@NAME_MLFUND@@", "#@@TAG_MLCODE@@": "@@NAME_MLCODE@@", "#@@TAG_MLSYS@@": "@@NAME_MLSYS@@", "#@@TAG_BQ@@": "@@NAME_BQ@@", "#@@TAG_MOCK@@": "@@NAME_MOCK@@"};
+  const tags = {"#@@TAG_LC@@": "@@NAME_LC@@", "#@@TAG_MLFUND@@": "@@NAME_MLFUND@@", "#@@TAG_MLCODE@@": "@@NAME_MLCODE@@", "#@@TAG_MLSYS@@": "@@NAME_MLSYS@@", "#@@TAG_BQ@@": "@@NAME_BQ@@", "#@@TAG_MOCK@@": "@@NAME_MOCK@@", "#@@TAG_INTERVIEW@@": "@@NAME_INTERVIEW@@"};
   const logged = i => !i.task || i.completed; // plain bullet, or checked task (legacy)
   const now = dv.date("today");
   const weekAgo = now.minus({ days: 6 });
@@ -203,6 +204,7 @@ async function render() {
     "#@@TAG_MLSYS@@": "⚙️ @@NAME_MLSYS@@",
     "#@@TAG_BQ@@": "💬 @@NAME_BQ@@",
     "#@@TAG_MOCK@@": "🎤 @@NAME_MOCK@@",
+    "#@@TAG_INTERVIEW@@": "🎙️ @@NAME_INTERVIEW@@",
   };
   const statRows = Object.keys(tags).map(t => ({
     name: tags[t], cell: "[[#" + sections[t] + "|" + tags[t] + "]]",
@@ -982,6 +984,96 @@ function render() {
   dv.header(3, "Sessions");
   dv.table(["Date", "Session", "Type", "Reflections"],
     rows.map(r => [r.link, r.what, r.type, r.notes]));
+}
+
+render();
+```
+
+<br>
+
+---
+
+## 🎙️ @@NAME_INTERVIEW@@
+
+> [!note]- Where this data lives
+> Source: your daily notes in `@@DAILY_NOTES_FOLDER@@/`, as plain bullets under `@@PREP_HEADING@@`, e.g. `- Stripe — ML Engineer · Onsite · Q: feature store design; LC #200 variant · strong on design, slow on coding #@@TAG_INTERVIEW@@`. Company and round are required; `Q:` marks the questions asked; the rest is reflections. The ＋ button's guided prompts write there for you (and can update the application's status in one go).
+
+```dataviewjs
+// Entries: who · round · Q: questions · reflections. Rounds come from a
+// closed list; the "Q: " prefix marks questions; everything else after the
+// round is reflections.
+const ROUNDS = @@INTERVIEW_ROUNDS_JSON@@.map(x => x.toLowerCase());
+let rangeDays = null; // view state only; null = all time
+
+function render() {
+  dv.container.innerHTML = "";
+
+  const bar = dv.container.createEl("div", { attr: { style:
+    "display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 6px 0;" } });
+  const manual = bar.createEl("button", { text: "＋ Interview", attr: { style:
+    "border-left: 3px solid #6366f1; background: #6366f11f; border-radius: 5px;" } });
+  manual.onclick = async () => {
+    const qa = app.plugins.plugins.quickadd;
+    if (!qa || !qa.api || !qa.api.executeChoice) {
+      new Notice("QuickAdd isn't available — is the plugin enabled?"); return;
+    }
+    if (!(qa.settings?.choices || []).some(c => c.name === "Log @@NAME_INTERVIEW@@")) {
+      new Notice("QuickAdd choice 'Log @@NAME_INTERVIEW@@' not found — deploy PrepDojo's QuickAdd config (see README → Updating).");
+      return;
+    }
+    try { await qa.api.executeChoice("Log @@NAME_INTERVIEW@@"); }
+    catch (e) { console.debug("PrepDojo: choice cancelled or failed", e); }
+  };
+
+  const chipRow = dv.container.createEl("div", { attr: { style:
+    "display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 28px 0 6px 0;" } });
+  for (const [label, days] of [["7d", 7], ["14d", 14], ["30d", 30], ["90d", 90], ["All", null]]) {
+    const active = days === rangeDays;
+    const chip = chipRow.createEl("button", { text: label, attr: { style:
+      "border-radius: 5px; padding: 2px 10px;"
+      + (active ? " background: var(--interactive-accent); color: var(--text-on-accent);" : "") } });
+    chip.onclick = () => { rangeDays = days; render(); };
+  }
+
+  const logged = i => !i.task || i.completed;
+  const all = [];
+  for (const p of dv.pages('"@@DAILY_NOTES_FOLDER@@"')) {
+    for (const i of p.file.lists.filter(i => logged(i) && i.text.includes("#@@TAG_INTERVIEW@@"))) {
+      const text = i.text.replace(/#@@TAG_INTERVIEW@@\b/g, "").trim();
+      const parts = text.split("·").map(x => x.trim()).filter(Boolean);
+      let round = "", questions = "", notes = [];
+      for (const q of parts.slice(1)) {
+        if (!round && ROUNDS.includes(q.toLowerCase())) round = q;
+        else if (!questions && /^Q:\s*/i.test(q)) questions = q.replace(/^Q:\s*/i, "");
+        else notes.push(q);
+      }
+      all.push({ day: p.file.name, link: p.file.link,
+        who: parts[0] || "—", round: round || "—",
+        questions: questions || "—",
+        notes: notes.length ? notes.join(" · ") : "—" });
+    }
+  }
+  all.sort((a, b) => b.day.localeCompare(a.day));
+
+  const now = dv.date("today");
+  const cutoff = rangeDays === null ? null : now.minus({ days: rangeDays - 1 });
+  const rows = cutoff === null ? all
+    : all.filter(r => { const d = dv.date(r.day); return d && d >= cutoff && d <= now; });
+  const rangeText = cutoff === null
+    ? `Showing all time · ${rows.length} interviews`
+    : `Showing last ${rangeDays} days (${cutoff.toFormat("yyyy-MM-dd")} – ${now.toFormat("yyyy-MM-dd")}) · ${rows.length} interviews`;
+  dv.container.createEl("div", { text: rangeText, attr: { style:
+    "font-size: 0.8em; font-style: italic; color: #8a8a8a; margin: 0 0 8px 0;" } });
+
+  const byRound = {};
+  for (const r of rows) byRound[r.round] = (byRound[r.round] ?? 0) + 1;
+  if (rows.length) {
+    dv.header(3, "By round");
+    dv.table(["Round", "Count"], Object.entries(byRound).sort((a, b) => b[1] - a[1]));
+  }
+  dv.header(3, "Interviews");
+  dv.table(["Date", "Company — Position", "Round", "Questions asked", "Reflections"],
+    rows.map(r => [r.link, r.who, r.round, r.questions, r.notes]));
 }
 
 render();

@@ -49,7 +49,7 @@ ROOT = Path(__file__).parent
 TEMPLATES = ROOT / "templates"
 DIST = ROOT / "dist"
 
-CATEGORY_KEYS = ["lc", "mlfund", "mlcode", "mlsys", "bq", "mock"]
+CATEGORY_KEYS = ["lc", "mlfund", "mlcode", "mlsys", "bq", "mock", "interview"]
 
 # Every setting has a default; config.toml only needs what the user wants to
 # change (at minimum: [vault] path). Full reference: docs/configuration.md
@@ -70,6 +70,7 @@ DEFAULT_CONFIG = {
         "mlsys": {"name": "ML System Design", "tag": "mlsys"},
         "bq": {"name": "Behavioral", "tag": "bq"},
         "mock": {"name": "Mock Interviews", "tag": "mock"},
+        "interview": {"name": "Interviews", "tag": "interview"},
     },
     "leetcode": {
         "difficulties": ["Easy", "Medium", "Hard"],
@@ -103,6 +104,11 @@ MLSYS_DEFAULT_SOURCES = ["question", "blog", "video", "course", "paper", "projec
 # Session types for mock-interview logging; override with `types = [...]`
 # under [categories.mock] in config.toml.
 MOCK_DEFAULT_TYPES = ["coding", "behavioral", "system design"]
+
+# Rounds offered when logging a real interview; override with
+# `rounds = [...]` under [categories.interview] in config.toml.
+INTERVIEW_DEFAULT_ROUNDS = ["HR Call", "HM Interview", "OA", "Phone Screen",
+                            "Onsite", "Team Match", "Other"]
 
 # Starter headers for the job-application CSVs (kept in sync with prepdojo.py
 # and the dashboard's Job Applications section).
@@ -161,6 +167,8 @@ def replacements(cfg: dict) -> dict:
             cfg["categories"]["mlsys"].get("sources", MLSYS_DEFAULT_SOURCES)),
         "@@MOCK_TYPES_JSON@@": json.dumps(
             cfg["categories"]["mock"].get("types", MOCK_DEFAULT_TYPES)),
+        "@@INTERVIEW_ROUNDS_JSON@@": json.dumps(
+            cfg["categories"]["interview"].get("rounds", INTERVIEW_DEFAULT_ROUNDS)),
     }
     for key in CATEGORY_KEYS:
         cat = cfg["categories"][key]
@@ -209,6 +217,26 @@ def build_quickadd(cfg: dict) -> dict:
     choices = []
     for key in CATEGORY_KEYS:
         cat = cfg["categories"][key]
+        if key == "interview":
+            # Guided macro flow (application, round, questions, reflections)
+            choices.append({
+                "id": stable_id(key),
+                "name": f"Log {cat['name']}",
+                "type": "Macro",
+                "command": True,
+                "runOnStartup": False,
+                "macro": {
+                    "id": stable_id("interview-macro"),
+                    "name": f"Log {cat['name']}",
+                    "commands": [{
+                        "name": "prepdojo-log-interview",
+                        "type": "UserScript",
+                        "path": "scripts/prepdojo-log-interview.js",
+                        "settings": {},
+                    }],
+                },
+            })
+            continue
         if key == "mock":
             # Guided macro flow (type + reflections) — see log-mock.js
             choices.append({
@@ -386,6 +414,8 @@ def build_prepdojo_json(cfg: dict) -> str:
             entry["sources"] = cat.get("sources", MLSYS_DEFAULT_SOURCES)
         if key == "mock":
             entry["types"] = cat.get("types", MOCK_DEFAULT_TYPES)
+        if key == "interview":
+            entry["rounds"] = cat.get("rounds", INTERVIEW_DEFAULT_ROUNDS)
         cats[key] = entry
     doc = {
         "prepdojo": {"schema": 1},
@@ -483,6 +513,8 @@ def main() -> None:
     write(DIST / "vault" / "scripts" / "prepdojo-update-application.js", upd_script)
     mock_script = render((TEMPLATES / "vault" / "log-mock.js").read_text(encoding="utf-8"), rep)
     write(DIST / "vault" / "scripts" / "prepdojo-log-mock.js", mock_script)
+    interview_script = render((TEMPLATES / "vault" / "log-interview.js").read_text(encoding="utf-8"), rep)
+    write(DIST / "vault" / "scripts" / "prepdojo-log-interview.js", interview_script)
 
     # Obsidian config
     write(DIST / "obsidian" / "daily-notes.json", json.dumps({
@@ -553,6 +585,8 @@ def main() -> None:
              vault / "scripts" / "prepdojo-update-application.js"),
             (DIST / "vault" / "scripts" / "prepdojo-log-mock.js",
              vault / "scripts" / "prepdojo-log-mock.js"),
+            (DIST / "vault" / "scripts" / "prepdojo-log-interview.js",
+             vault / "scripts" / "prepdojo-log-interview.js"),
             (DIST / "obsidian" / "daily-notes.json", vault / ".obsidian" / "daily-notes.json"),
             (DIST / "vault" / "prepdojo.json", vault / "prepdojo.json"),
         ]

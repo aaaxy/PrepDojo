@@ -69,6 +69,12 @@ tag = "mock"
 # Session types offered when logging.
 types = ["coding", "behavioral", "system design"]
 
+[categories.interview]
+name = "Interviews"
+tag = "interview"
+# Rounds offered when logging a real interview.
+rounds = ["HR Call", "HM Interview", "OA", "Phone Screen", "Onsite", "Team Match", "Other"]
+
 [leetcode]
 # LeetCode username for the import (dashboard button and `prepdojo sync-lc`).
 # Public profiles only. Unset = import disabled.
