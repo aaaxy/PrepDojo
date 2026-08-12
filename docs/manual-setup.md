@@ -24,11 +24,11 @@ Copy `templates/vault/dashboard.md` into your vault (e.g. as `Interview Prep Das
 | `@@DAILY_NOTES_FOLDER@@` | `Calendar/Daily Notes` |
 | `@@PREP_HEADING@@` | `## Interview Prep` |
 | `@@TAG_LC@@` / `@@TAG_MLFUND@@` / `@@TAG_MLCODE@@` / `@@TAG_MLSYS@@` / `@@TAG_BQ@@` | `lc`, `mlfund`, `mlcode`, `mlsys`, `bq` |
-| `@@NAME_LC@@` etc. | `LeetCode`, `ML Fundamentals`, ... |
+| `@@NAME_LC@@` etc. | `LeetCode-style`, `ML Fundamentals`, ... |
 | `@@DATE_FORMAT@@` | `YYYY-MM-DD` (must match your daily-note filename format) |
 | `@@DAILY_NOTE_TEMPLATE@@` | `Templates/Daily Note.md` |
 | `@@APPLICATIONS_FOLDER@@` | `Career/Applications` (where the two CSVs from step 5 live) |
-| `@@TOPICS_CSV@@` | the same comma-separated topic list as in step 4 |
+| `@@TOPICS_CSV@@` | your comma-separated topic list, e.g. `arrays & hashing,two pointers,sliding window,stack,binary search,linked list,trees,heap,backtracking,graphs,bfs/dfs,dp,greedy,intervals,bit manipulation` |
 | `@@LC_USERNAME@@` | your LeetCode username, or empty to disable the import button |
 
 Open the note in Reading view. Tables appear once you have logged entries.
@@ -37,7 +37,7 @@ The **⟳ Import from LeetCode** button pulls your accepted submissions from the
 
 ## 4. QuickAdd captures
 
-Settings → QuickAdd. For each category, add a choice named exactly `Log ` + the category name you used in the dashboard (`Log LeetCode`, `Log ML Fundamentals`, `Log ML Coding`, `Log ML System Design`, `Log Behavioral`) — the dashboard buttons run choices by that name, so a different name breaks them. Choose type **Capture**, click **Add Choice**, then open its ⚙️ settings:
+Settings → QuickAdd. For each capture category, add a choice named exactly `Log ` + the category name you used in the dashboard (`Log ML Fundamentals`, `Log ML Coding`, `Log Behavioral`) — the dashboard buttons run choices by that name, so a different name breaks them. Choose type **Capture**, click **Add Choice**, then open its ⚙️ settings:
 
 - **Capture To**: `Calendar/Daily Notes/{{VDATE:Which day?,YYYY-MM-DD|today}}.md`
   (the `VDATE` prompt accepts natural language: today, yesterday, last friday, or aliases like `t`, `yd` configurable in QuickAdd's "Date aliases" setting)
@@ -46,11 +46,7 @@ Settings → QuickAdd. For each category, add a choice named exactly `Log ` + th
 - **Task**: off (entries are plain bullets)
 - **Capture format**: on. Paste the format for the category, and make sure the format ends with a newline (press Enter after the tag), otherwise consecutive entries merge onto one line:
 
-LeetCode:
-
-```
-- LC {{VALUE:Problem name (e.g. #200 Number of Islands)}} · {{VALUE:Easy,Medium,Hard}} · {{VALUE:arrays & hashing,two pointers,sliding window,stack,binary search,linked list,trees,heap,backtracking,graphs,bfs/dfs,dp,greedy,intervals,bit manipulation}} #lc
-```
+LeetCode-style uses a guided macro (day, problem, difficulty, then a topic picker that offers your configured topics plus every topic already used in your log, with a "＋ New topic…" free-text option): copy `templates/vault/log-lc.js` into your vault's `scripts/` folder (replacing its placeholders), then add a **Macro** choice named exactly `Log LeetCode-style` running that script.
 
 ML fundamentals:
 
@@ -76,7 +72,7 @@ Behavioral:
 - {{VALUE:Story or question practiced}} #bq
 ```
 
-A plain `{{VALUE:label}}` prompts for text with that label; a comma-separated `{{VALUE:a,b,c}}` renders a dropdown. Edit the topic list to taste; it is just that comma-separated string.
+A plain `{{VALUE:label}}` prompts for text with that label; a comma-separated `{{VALUE:a,b,c}}` renders a dropdown.
 
 Finally, click the ⚡ (command) icon on each choice so it becomes assignable, then Settings → Hotkeys → search "QuickAdd" → assign (suggested: `Cmd/Ctrl+Shift+L` for LC, `Cmd/Ctrl+Shift+M` for ML fundamentals).
 
@@ -115,7 +111,7 @@ If you use Claude Code or the Claude app, install the PrepDojo plugin (see "AI l
   },
   "entry_format": {"separator": " · "},
   "categories": {
-    "lc": {"name": "LeetCode", "tag": "lc"},
+    "lc": {"name": "LeetCode-style", "tag": "lc"},
     "mlfund": {"name": "ML Fundamentals", "tag": "mlfund"},
     "mlcode": {"name": "ML Coding", "tag": "mlcode"},
     "mlsys": {"name": "ML System Design", "tag": "mlsys",

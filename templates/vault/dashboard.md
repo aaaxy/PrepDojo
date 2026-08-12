@@ -470,7 +470,7 @@ window.prepdojoAppsPoll = window.setInterval(async () => {
 
 > [!note]- Where this data lives
 > Source: your daily notes in `@@DAILY_NOTES_FOLDER@@/`, as plain bullets under `@@PREP_HEADING@@`, e.g. `- LC #200 Number of Islands · Medium · bfs/dfs #@@TAG_LC@@`. The Import and ＋ buttons write there for you; you can also type entries directly. This section recomputes from those notes every time it renders.
-> Duplicates are caught automatically: the ⟳ Import (and the CLI) refuse the same problem twice in one day, with a notice. Solving a problem again on a later day is not a duplicate — it counts as a review and shows in the Attempt column.
+> Duplicates are caught automatically: the ⟳ Import, the ＋ button, and the CLI refuse the same entry twice in one day, with a notice. Solving a problem again on a later day is not a duplicate — it counts as a review and shows in the Attempt column.
 
 ```dataviewjs
 // Range-filtered view of logged problems, with one-click import of recent
@@ -574,16 +574,29 @@ async function lcImport(btn) {
 }
 
 const TOPICS = "@@TOPICS_CSV@@".split(",");
+let seenTopics = []; // topics already used in the log, collected in render()
 
 async function addTopic(r, btn) {
   const qa = app.plugins.plugins.quickadd;
   if (!qa || !qa.api || !qa.api.suggester) {
     new Notice("QuickAdd isn't available — is the plugin enabled?"); return;
   }
+  // Configured topics ∪ topics you've already used, plus a free-text option.
+  const known = new Set(TOPICS.map(t => t.toLowerCase()));
+  const extras = seenTopics.filter(t => !known.has(t)).sort();
+  const NEW = "＋ New topic…";
   let topic;
-  try { topic = await qa.api.suggester(TOPICS, TOPICS); }
+  try { topic = await qa.api.suggester(
+    [...TOPICS, ...extras, NEW], [...TOPICS, ...extras, "NEW"]); }
   catch (e) { return; } // picker cancelled — nothing to do
   if (!topic) return;
+  if (topic === "NEW") {
+    try { topic = ((await qa.api.inputPrompt(
+      "New topic (e.g. union find, or dp - knapsack to count under dp)")) || "")
+      .replace(/·/g, "-").trim(); }
+    catch (e) { return; }
+    if (!topic) return;
+  }
   const path = "@@DAILY_NOTES_FOLDER@@/" + r.day + ".md";
   let raw;
   try { raw = await app.vault.adapter.read(path); }
@@ -668,6 +681,7 @@ function render() {
     }
   }
   all.sort((a, b) => b.day.localeCompare(a.day));
+  seenTopics = [...new Set(all.map(r => r.topic).filter(t => t && t !== "—"))];
 
   // range filter (the tables below); Needs topic stays all-time on purpose
   const now = dv.date("today");

@@ -36,10 +36,10 @@ Example with the default tag: `- LC #200 Number of Islands · Medium · bfs/dfs 
 
 The ` · ` separators matter — the dashboard splits on them (problem · difficulty · topic). Because `·` is the field separator, it can never appear inside a field: replace any `·` in user-supplied text with `-`. Difficulty must be one of `config.leetcode.difficulties`.
 
-**Topic must come from `config.leetcode.topics`** (lowercase, exact strings, so dashboard grouping stays consistent):
+**Topic defaults to `config.leetcode.topics`** (lowercase, exact strings, so dashboard grouping stays consistent), but the taxonomy is extensible — the user may name a topic outside it and the dashboard groups by whatever string is logged:
 
 - Always lowercase.
-- Never invent a topic string outside the list. If the problem's natural tag isn't in the taxonomy (union find, trie, monotonic stack, math...), offer the closest taxonomy matches in the topic question and include the unmapped tag as an option too — let the user decide; their choice may legitimately extend their taxonomy.
+- Never invent an off-taxonomy topic on your own. If the problem's natural tag isn't in the taxonomy (union find, trie, monotonic stack, math...), offer the closest taxonomy matches in the topic question and include the unmapped tag as an option too — let the user decide. If they pick or type a new topic, log it verbatim (lowercased, `·` replaced with `-`); it then counts as part of their taxonomy, so reuse the exact same string next time.
 - Finer divisions use `main - subtopic`, where `main` is a taxonomy item: `dp - knapsack`, `trees - bst`. The dashboard groups by the part before ` - `, so subtopics enrich rather than fragment the stats.
 - If the user names a topic themselves, normalize it (lowercase, map "dynamic programming" → "dp") rather than writing a new variant.
 

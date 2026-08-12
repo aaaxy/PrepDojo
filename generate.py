@@ -62,7 +62,7 @@ DEFAULT_CONFIG = {
         "prep_heading": "## Interview Prep",
     },
     "categories": {
-        "lc": {"name": "LeetCode", "tag": "lc",
+        "lc": {"name": "LeetCode-style", "tag": "lc",
                "hotkey": {"modifiers": ["Mod", "Shift"], "key": "L"}},
         "mlfund": {"name": "ML Fundamentals", "tag": "mlfund",
                    "hotkey": {"modifiers": ["Mod", "Shift"], "key": "M"}},
@@ -121,7 +121,6 @@ RESUME_VERSIONS_HEADER = ("Version ID,Short Description,Emphasis / Angle,"
 
 # One QuickAdd capture per category: (display name suffix, prompt format)
 CAPTURE_FORMATS = {
-    "lc": "- LC {{VALUE:Problem name (e.g. #200 Number of Islands)}} · {{VALUE:@DIFFS@}} · {{VALUE:@TOPICS@}} #@TAG@\n",
     "mlfund": "- {{VALUE:Topic reviewed}} · {{VALUE:\U0001f7e2,\U0001f7e1,\U0001f534}} #@TAG@\n",
     "mlcode": "- {{VALUE:What did you implement?}} #@TAG@\n",
     "bq": "- {{VALUE:Story or question practiced}} #@TAG@\n",
@@ -209,7 +208,7 @@ def render(text: str, rep: dict) -> str:
 
 
 def build_quickadd(cfg: dict) -> dict:
-    v, lc = cfg["vault"], cfg["leetcode"]
+    v = cfg["vault"]
     capture_to = (
         f"{v['daily_notes_folder']}/"
         f"{{{{VDATE:Which day?,{v['date_format']}|today}}}}.md"
@@ -217,6 +216,27 @@ def build_quickadd(cfg: dict) -> dict:
     choices = []
     for key in CATEGORY_KEYS:
         cat = cfg["categories"][key]
+        if key == "lc":
+            # Guided macro flow (problem, difficulty, topic picker that also
+            # accepts brand-new topics) — see log-lc.js
+            choices.append({
+                "id": stable_id(key),
+                "name": f"Log {cat['name']}",
+                "type": "Macro",
+                "command": True,
+                "runOnStartup": False,
+                "macro": {
+                    "id": stable_id("lc-macro"),
+                    "name": f"Log {cat['name']}",
+                    "commands": [{
+                        "name": "prepdojo-log-lc",
+                        "type": "UserScript",
+                        "path": "scripts/prepdojo-log-lc.js",
+                        "settings": {},
+                    }],
+                },
+            })
+            continue
         if key == "interview":
             # Guided macro flow (application, round, questions, reflections)
             choices.append({
@@ -277,12 +297,7 @@ def build_quickadd(cfg: dict) -> dict:
                 },
             })
             continue
-        fmt = (
-            CAPTURE_FORMATS[key]
-            .replace("@DIFFS@", ",".join(lc["difficulties"]))
-            .replace("@TOPICS@", ",".join(lc["topics"]))
-            .replace("@TAG@", cat["tag"])
-        )
+        fmt = CAPTURE_FORMATS[key].replace("@TAG@", cat["tag"])
         choices.append({
             "id": stable_id(key),
             "name": f"Log {cat['name']}",
@@ -515,6 +530,8 @@ def main() -> None:
     write(DIST / "vault" / "scripts" / "prepdojo-log-mock.js", mock_script)
     interview_script = render((TEMPLATES / "vault" / "log-interview.js").read_text(encoding="utf-8"), rep)
     write(DIST / "vault" / "scripts" / "prepdojo-log-interview.js", interview_script)
+    lc_script = render((TEMPLATES / "vault" / "log-lc.js").read_text(encoding="utf-8"), rep)
+    write(DIST / "vault" / "scripts" / "prepdojo-log-lc.js", lc_script)
 
     # Obsidian config
     write(DIST / "obsidian" / "daily-notes.json", json.dumps({
@@ -587,6 +604,8 @@ def main() -> None:
              vault / "scripts" / "prepdojo-log-mock.js"),
             (DIST / "vault" / "scripts" / "prepdojo-log-interview.js",
              vault / "scripts" / "prepdojo-log-interview.js"),
+            (DIST / "vault" / "scripts" / "prepdojo-log-lc.js",
+             vault / "scripts" / "prepdojo-log-lc.js"),
             (DIST / "obsidian" / "daily-notes.json", vault / ".obsidian" / "daily-notes.json"),
             (DIST / "vault" / "prepdojo.json", vault / "prepdojo.json"),
         ]

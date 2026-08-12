@@ -28,6 +28,7 @@ EXPECTED_VAULT_FILES = [
     "scripts/prepdojo-log-mlsys.js",
     "scripts/prepdojo-log-mock.js",
     "scripts/prepdojo-log-interview.js",
+    "scripts/prepdojo-log-lc.js",
     ".obsidian/daily-notes.json",
     ".obsidian/plugins/quickadd/data.json",
     "Applications/applications.csv",

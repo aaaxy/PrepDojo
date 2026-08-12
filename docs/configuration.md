@@ -40,7 +40,7 @@ prep_heading = "## Interview Prep"
 # ------------------------------------------------------------
 
 [categories.lc]
-name = "LeetCode"
+name = "LeetCode-style"
 tag = "lc"
 hotkey = { modifiers = ["Mod", "Shift"], key = "L" }
 
@@ -86,9 +86,11 @@ rounds = ["HR Call", "HM Interview", "OA", "Phone Screen", "Onsite", "Team Match
 
 difficulties = ["Easy", "Medium", "Hard"]
 
-# Topic taxonomy for the dropdowns and dashboard grouping. Keep lowercase;
+# Topic taxonomy seeding the pickers and dashboard grouping. Keep lowercase;
 # finer divisions use "main - subtopic" (e.g. "dp - knapsack") and the
-# dashboard groups them under "dp".
+# dashboard groups them under "dp". This list is a starting point, not a
+# fence: the pickers also offer every topic already used in your log, plus
+# "＋ New topic…" for typing a brand-new one at log time.
 topics = [
   "arrays & hashing", "two pointers", "sliding window", "stack",
   "binary search", "linked list", "trees", "heap", "backtracking",
