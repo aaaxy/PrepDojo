@@ -1,6 +1,6 @@
 # PrepDojo 🥋
 
-*Show up daily. Log in a click. Leave sharper.*
+*An interview prep and job application tracker that lives in your Obsidian vault.*
 
 <!-- TODO hero image: the single strongest asset goes here, above the fold.
      Best candidate: a short GIF of the full loop — dashboard button → prompts →
@@ -9,13 +9,13 @@
 ![Log in a click, see it add up](docs/media/hero.gif)
 -->
 
-Job hunting is a hundred small efforts a day: a LeetCode problem at breakfast, ML review at night, a batch of applications in between. Each one is forgettable — together, they're your entire preparation. PrepDojo makes sure none of it disappears, and everything happens on one dashboard page. Log anything with a single click (or just tell an AI "did two sum today"), and the same page shows the full picture the moment you need it: your streak, which topics are solid and which are shaky, how many applications went out this week, and which resume actually gets you interviews.
+Job hunting means doing a lot of small things every day. A LeetCode problem at breakfast, some ML review at night, a batch of applications in between. None of it feels like much, and a week later you can't remember any of it. PrepDojo keeps all of it on one dashboard page. You log with a click, or just tell an AI "did two sum today", and the same page shows your streak, which topics need work, how many applications went out this week, and which resume is actually getting you interviews.
 
-Everything stays in plain files on your own computer. No account, no subscription, nothing to lose access to. Built on [Obsidian](https://obsidian.md), free and local-first.
+Everything lives in plain files in an [Obsidian](https://obsidian.md) vault on your own computer and your records stay readable in any editor.
 
 ## ✨ What you can do
 
-⟳ **Import your LeetCode solves with one click.** Just crushed a few problems on LeetCode? Click ⟳ Import on the dashboard and your recent accepted submissions land in your daily notes.
+⟳ **Import your LeetCode solves with one click.** Just crushed a few problems on LeetCode? Click ⟳ Import on the dashboard and your recent accepted submissions are logged for you.
 
 <!-- TODO gif: ⟳ Import click → notice "2 new, 4 already logged" → Needs topic
      rows → ＋ Topic picker. Save as docs/media/import-lc.gif, embed:
@@ -29,19 +29,19 @@ Everything stays in plain files on your own computer. No account, no subscriptio
 ![Logging with one click](docs/media/log-click.gif)
 -->
 
-✎ **Track every application to the end.** Heard back? Hit ✎ Update and log the new status in seconds. Interviews and offers rise to the top.
+✎ **Track every application to the end.** Heard back? Hit ✎ Update and log the new status in seconds.
 
 <!-- TODO gif: ✎ Update click → fuzzy search "stri" → pick → status HR Call →
      Active table shows the row. Save as docs/media/update-app.gif, embed:
 ![Track every application](docs/media/update-app.gif)
 -->
 
-⇄ **A/B test your resume.** Stop guessing which resume works. Every application you send is quietly running an experiment. See the results.
+⇄ **A/B test your resume.** Every application you send tests one resume version. The dashboard computes an interview rate per version, so you can see which one actually gets you interviews.
 
 <!-- TODO screenshot: the "By resume version" table with rates.
      Save as docs/media/resume-rates.png -->
 
-▦ **One page shows it all.** Everything above lives on a single dashboard: your streak burning, topics ranked from solid to shaky, interviews and offers up top, resume rates below. Open it and today's story is already written. No assembly required.
+▦ **One page shows it all.** Everything above lives on a single dashboard: your current streak, topics ranked from solid to shaky, interviews and offers up top, resume rates below.
 
 <!-- TODO screenshot (the money shot): the dashboard in Reading view showing the
      streak line + by-topic and by-difficulty tables. Save as docs/media/dashboard.png -->
@@ -61,41 +61,41 @@ Optional: the Claude desktop app (Cowork) or Claude Code, if you want AI logging
 
 ## 🚀 Quick start
 
-**Step 1 — Get the repo**
+**Step 1: Get the repo**
 
 ```bash
 git clone https://github.com/aaaxy/PrepDojo.git
 cd PrepDojo
 ```
 
-**Step 2 — Prepare your vault**
+**Step 2: Prepare your vault**
 
 1. Pick the folder that is (or will be) your Obsidian vault. It should live outside this repo.
 2. Open that vault in Obsidian at least once.
 3. On **Obsidian 1.12+**: open **Settings → General →** enable **Command line interface**.
 4. Quit Obsidian (setup reopens it when installing the plugins).
 
-**Step 3 — Run setup** with your vault's path, back in the terminal:
+**Step 3: Run setup** with your vault's path, back in the terminal:
 
 ```bash
 python3 setup.py /path/to/YourVault
 ```
 
-Setup asks two optional questions along the way — your LeetCode username (powers the import button) and your daily-notes folder. Everything else has sensible defaults you can change later; see [docs/configuration.md](docs/configuration.md).
+Setup asks two optional questions along the way: your LeetCode username (powers the import button) and your daily-notes folder. Everything else has sensible defaults you can change later; see [docs/configuration.md](docs/configuration.md).
 
-*(Step 3b, only on Obsidian older than 1.12 — setup can't install the plugins without the CLI:)*
+**Step 3b: skip to Step 4 if your Obsidian is 1.12 (released February 2026) or newer.** On older versions, setup can't install the plugins, so install them by hand:
 
 1. Open **Settings → Community plugins** and turn off **Restricted mode**.
 2. Click **Browse**, then install and enable **[Dataview](https://obsidian.md/plugins?id=dataview)**, **[QuickAdd](https://obsidian.md/plugins?id=quickadd)**, and **[Calendar](https://obsidian.md/plugins?id=calendar)**.
 
-**Step 4 — Finish in Obsidian**, whichever version you're on:
+**Step 4: Finish in Obsidian**, whichever version you're on:
 
 1. Open **Settings → Community plugins**, click the ⚙️ next to **Dataview**, and turn on **Enable JavaScript queries**.
 2. Open the dashboard note in Reading view and click a button. Done.
 
 The tables start empty. Your first log fills them, and your streak starts counting.
 
-**Step 5 (optional) — Add AI logging.** Install once, in Claude Code or the Claude app:
+**Step 5 (optional): Add AI logging.** Install once, in Claude Code or the Claude app:
 
 ```
 /plugin marketplace add aaaxy/PrepDojo
@@ -104,7 +104,7 @@ The tables start empty. Your first log fills them, and your streak starts counti
 
 Your settings travel with your vault (setup writes a small `prepdojo.json` there), so the plugin needs no configuration and keeps working when you change settings.
 
-**That's it — you're all set.** From here on, PrepDojo is just the dashboard and your daily grind.
+**That's it. You're all set.** From here on, PrepDojo is just the dashboard and your daily grind.
 
 ---
 
@@ -125,26 +125,26 @@ The path is remembered in `config.toml`, so a plain `python3 generate.py` works 
 
 3. Restart Obsidian and reopen the dashboard note.
 
-**Reading the output**: `installed` and `up to date` mean done. `PRESERVED ... new version written to *.new` means you've hand-edited that file since it was installed — compare it with the `.new` copy and merge at your own pace, or rerun with `--force` to take the new version wholesale.
+**Reading the output**: `installed` and `up to date` mean done. `PRESERVED ... new version written to *.new` means you've hand-edited that file since it was installed. Compare it with the `.new` copy and merge at your own pace, or rerun with `--force` to take the new version wholesale.
 
-**What it can and cannot touch**: generated files you haven't edited update in place; anything you *have* edited is preserved with a `.new` beside it; your data — daily notes and application CSVs — is never written, under any flag. One consequence: if an update adds a column to the applications CSV schema, append the new column name to your `applications.csv` header row yourself (release notes will say so; rows without a value are fine).
+**What it can and cannot touch**: generated files you haven't edited update in place; anything you *have* edited is preserved with a `.new` beside it; your data (daily notes and application CSVs) is never written, under any flag. One consequence: if an update adds a column to the applications CSV schema, append the new column name to your `applications.csv` header row yourself (release notes will say so; rows without a value are fine).
 
 **Two things never update automatically**:
 
-- **Hotkeys** — Obsidian's `hotkeys.json` is shared with everything else, so PrepDojo never writes it. If an update added new flows, bind them in Settings → Hotkeys (or merge `dist/obsidian/hotkeys-snippet.json`).
-- **The AI plugin** — it updates through Claude's plugin manager, not `generate.py`. After a PrepDojo release, refresh it from the `/plugin` menu in Claude.
+- **Hotkeys**: Obsidian's `hotkeys.json` is shared with everything else, so PrepDojo never writes it. If an update added new flows, bind them in Settings → Hotkeys (or merge `dist/obsidian/hotkeys-snippet.json`).
+- **The AI plugin**: it updates through Claude's plugin manager, not `generate.py`. After a PrepDojo release, refresh it from the `/plugin` menu in Claude.
 
-*(Upgrading from the old `.skill` file? The plugin replaces it — remove the `lc-logger` skill from your Claude profile after installing the plugin. `dist/claude-skill/` still builds for now, but it is deprecated and will be removed in a future release.)*
+*(Upgrading from the old `.skill` file? The plugin replaces it: remove the `lc-logger` skill from your Claude profile after installing the plugin. `dist/claude-skill/` still builds for now, but it is deprecated and will be removed in a future release.)*
 
-**Habits that keep this smooth**: customize in the repo's `templates/`, not the installed vault copies — except PrepDojo's QuickAdd choices, which are managed from `config.toml`. And remember config changes affect future entries only: rename a tag and old entries keep the old one until you find-and-replace them.
+**Habits that keep this smooth**: customize in the repo's `templates/`, not the installed vault copies. The exception is PrepDojo's QuickAdd choices, which are managed from `config.toml`. And remember config changes affect future entries only: rename a tag and old entries keep the old one until you find-and-replace them.
 
 ## 🔍 System overview
 
-To you, PrepDojo is one dashboard page. Under the hood, that page is the visible tip of three coordinated layers, all generated from one config file:
+To you, PrepDojo is one dashboard page. Under the hood, that page is built from three layers, all generated from one config file:
 
-- **Capture** — log what you did in seconds, from wherever you are. Four doors into the same log: one-click dashboard buttons with guided prompts, QuickAdd hotkeys running the same flows from anywhere in Obsidian, an AI logging plugin for Claude (its skills read plain `prepdojo.json`, so any LLM agent can follow the same contract) that turns "just did two sum" or a pasted LeetCode URL into a correctly formatted entry, and a CLI (`prepdojo.py`) for terminals and automation. A fifth door is automatic: the ⟳ LeetCode import fetches your recent accepted submissions. Every door validates entries, so the log can't drift into inconsistency
-- **Storage** — where your record lives. Plain text files on your own machine: markdown bullets in your daily notes for practice, CSV rows for job applications. Human-readable, grep-able, no database, no lock-in — every tool in this repo is replaceable, and your record outlives all of them
-- **Insight** — how you see your progress. One dashboard note computes it all from your record: streaks, per-topic and per-difficulty breakdowns with date-range filters, a "needs re-review" list, and application stats (active interviews, offers, milestone summary, interview rate per resume version), updating live while the note is open. It stores nothing itself, so regenerating, moving, or customizing it is always safe
+- **Capture**: log what you did in seconds, from wherever you are. Four ways into the same log: one-click dashboard buttons with guided prompts, QuickAdd hotkeys running the same flows from anywhere in Obsidian, an AI plugin for Claude, and a CLI (`prepdojo.py`) for terminals and automation. The AI plugin turns "just did two sum" or a pasted LeetCode URL into a correctly formatted entry. Its skills read plain `prepdojo.json`, so any LLM agent can follow the same contract. A fifth way is automatic: the ⟳ LeetCode import fetches your recent accepted submissions. Every entry point validates entries, so the log can't drift into inconsistency
+- **Storage**: where your record lives. Plain text files on your own machine: markdown bullets in your daily notes for practice, CSV rows for job applications. Human-readable, grep-able, no database, no lock-in. Every tool in this repo is replaceable, and your record outlives all of them
+- **Insight**: how you see your progress. One dashboard note computes it all from your record: streaks, per-topic and per-difficulty breakdowns with date-range filters, a "needs re-review" list, and application stats (active interviews, offers, milestone summary, interview rate per resume version), updating live while the note is open. It stores nothing itself, so regenerating, moving, or customizing it is always safe
 
 Daily workflow, from a solved problem to insight:
 
