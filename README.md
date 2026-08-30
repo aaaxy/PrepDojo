@@ -81,7 +81,7 @@ cd PrepDojo
 python3 setup.py /path/to/YourVault
 ```
 
-Setup asks two optional questions along the way: your LeetCode username (powers the import button) and your daily-notes folder. Everything else has sensible defaults you can change later; see [docs/configuration.md](docs/configuration.md).
+Setup asks two optional questions along the way: your LeetCode username (powers the import button) and your daily-notes folder. Everything else has sensible defaults you can change later. See [docs/configuration.md](docs/configuration.md).
 
 **Step 3b: skip to Step 4 if your Obsidian is 1.12 (released February 2026) or newer.** On older versions, setup can't install the plugins, so install them by hand:
 
@@ -125,9 +125,14 @@ The path is remembered in `config.toml`, so a plain `python3 generate.py` works 
 
 3. Restart Obsidian and reopen the dashboard note.
 
-**Reading the output**: `installed` and `up to date` mean done. `PRESERVED ... new version written to *.new` means you've hand-edited that file since it was installed. Compare it with the `.new` copy and merge at your own pace, or rerun with `--force` to take the new version wholesale.
+**Reading the output**: `installed` and `up to date` mean done. `PRESERVED ... new version written to *.new` means you've customized that file since it was installed. Compare it with the `.new` copy and merge at your own pace, or rerun with `--force` to take the new version wholesale.
 
-**What it can and cannot touch**: generated files you haven't edited update in place; anything you *have* edited is preserved with a `.new` beside it; your data (daily notes and application CSVs) is never written, under any flag. One consequence: if an update adds a column to the applications CSV schema, append the new column name to your `applications.csv` header row yourself (release notes will say so; rows without a value are fine).
+**What it can touch**: generated files you haven't customized. Those update in place.
+
+**What it never touches**: anything you *have* customized (kept as is, with the fresh version written beside it as `.new`) and your data. Daily notes and the application CSVs are never written, under any flag.
+
+> [!NOTE]
+> Because your CSVs are never touched, an update can't add a new column to them either. When a release adds one to the application tracker, the release notes will ask you to add that column name to the end of your `applications.csv` header row yourself.
 
 **Two things never update automatically**:
 
