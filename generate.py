@@ -62,10 +62,8 @@ DEFAULT_CONFIG = {
         "prep_heading": "## Interview Prep",
     },
     "categories": {
-        "lc": {"name": "LeetCode-style", "tag": "lc",
-               "hotkey": {"modifiers": ["Mod", "Shift"], "key": "L"}},
-        "mlfund": {"name": "ML Fundamentals", "tag": "mlfund",
-                   "hotkey": {"modifiers": ["Mod", "Shift"], "key": "M"}},
+        "lc": {"name": "LeetCode-style", "tag": "lc"},
+        "mlfund": {"name": "ML Fundamentals", "tag": "mlfund"},
         "mlcode": {"name": "ML Coding", "tag": "mlcode"},
         "mlsys": {"name": "ML System Design", "tag": "mlsys"},
         "bq": {"name": "Behavioral", "tag": "bq"},
@@ -82,7 +80,6 @@ DEFAULT_CONFIG = {
     },
     "applications": {
         "folder": "Applications",
-        "hotkey": {"modifiers": ["Mod", "Shift"], "key": "A"},
     },
 }
 
@@ -128,7 +125,8 @@ CAPTURE_FORMATS = {
 
 
 def stable_id(key: str) -> str:
-    """Deterministic UUID per category so hotkeys.json always matches data.json."""
+    """Deterministic UUID per choice, so QuickAdd merges and any hotkeys the
+    user binds to PrepDojo commands stay stable across regenerations."""
     return str(uuid.uuid5(uuid.NAMESPACE_DNS, f"prepdojo/{key}"))
 
 
@@ -461,21 +459,6 @@ def build_prepdojo_json(cfg: dict) -> str:
     return json.dumps(doc, indent=2, ensure_ascii=False) + "\n"
 
 
-def build_hotkeys(cfg: dict) -> dict:
-    out = {}
-    for key in CATEGORY_KEYS:
-        hotkey = cfg["categories"][key].get("hotkey")
-        if hotkey:
-            out[f"quickadd:choice:{stable_id(key)}"] = [
-                {"modifiers": hotkey["modifiers"], "key": hotkey["key"]}
-            ]
-    apps_hotkey = cfg.get("applications", {}).get("hotkey")
-    if apps_hotkey:
-        out[f"quickadd:choice:{stable_id('apps-log')}"] = [
-            {"modifiers": apps_hotkey["modifiers"], "key": apps_hotkey["key"]}
-        ]
-    return out
-
 
 def write(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -541,8 +524,6 @@ def main() -> None:
     }, indent=2) + "\n")
     write(DIST / "obsidian" / "plugins" / "quickadd" / "data.json",
           json.dumps(build_quickadd(cfg), indent=2, ensure_ascii=False) + "\n")
-    write(DIST / "obsidian" / "hotkeys-snippet.json",
-          json.dumps(build_hotkeys(cfg), indent=2) + "\n")
 
     # Machine-readable contract for the AI plugin skills (PRE-31)
     write(DIST / "vault" / "prepdojo.json", build_prepdojo_json(cfg))
@@ -702,11 +683,6 @@ def main() -> None:
 
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-        print(
-            "\nNot auto-installed: hotkeys. Merge dist/obsidian/hotkeys-snippet.json\n"
-            "into <vault>/.obsidian/hotkeys.json yourself (or assign hotkeys in\n"
-            "Settings → Hotkeys), so your existing hotkeys are never clobbered."
-        )
 
     print("\nDone. See README.md for what to do with each file in dist/.")
 

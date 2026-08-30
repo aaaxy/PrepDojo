@@ -134,14 +134,7 @@ The path is remembered in `config.toml`, so a plain `python3 generate.py` works 
 > [!NOTE]
 > Because your CSVs are never touched, an update can't add a new column to them either. When a release adds one to the application tracker, the release notes will ask you to add that column name to the end of your `applications.csv` header row yourself.
 
-**Two things never update automatically**:
-
-- **Hotkeys**: Obsidian's `hotkeys.json` is shared with everything else, so PrepDojo never writes it. If an update added new flows, bind them in Settings → Hotkeys (or merge `dist/obsidian/hotkeys-snippet.json`).
-- **The AI plugin**: it updates through Claude's plugin manager, not `generate.py`. After a PrepDojo release, refresh it from the `/plugin` menu in Claude.
-
-*(Upgrading from the old `.skill` file? The plugin replaces it: remove the `lc-logger` skill from your Claude profile after installing the plugin. `dist/claude-skill/` still builds for now, but it is deprecated and will be removed in a future release.)*
-
-**Habits that keep this smooth**: customize in the repo's `templates/`, not the installed vault copies. The exception is PrepDojo's QuickAdd choices, which are managed from `config.toml`. And remember config changes affect future entries only: rename a tag and old entries keep the old one until you find-and-replace them.
+**The AI plugin updates separately**: it updates through Claude's plugin manager, not `generate.py`. After a PrepDojo release, refresh it from the `/plugin` menu in Claude.
 
 ## 🔍 System overview
 

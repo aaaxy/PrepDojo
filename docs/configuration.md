@@ -33,21 +33,19 @@ prep_heading = "## Interview Prep"
 
 # ------------------------------------------------------------
 # Categories: name = how it appears on the dashboard,
-# tag = the inline tag that marks an entry (no '#'),
-# hotkey = QuickAdd hotkey (omit to leave unassigned;
-# Mod = Cmd on macOS / Ctrl on Windows-Linux).
+# tag = the inline tag that marks an entry (no '#').
+# Hotkeys are bound in Obsidian itself (Settings → Hotkeys) and stick
+# across updates.
 # Rename all five and the same system tracks any daily practice.
 # ------------------------------------------------------------
 
 [categories.lc]
 name = "LeetCode-style"
 tag = "lc"
-hotkey = { modifiers = ["Mod", "Shift"], key = "L" }
 
 [categories.mlfund]
 name = "ML Fundamentals"
 tag = "mlfund"
-hotkey = { modifiers = ["Mod", "Shift"], key = "M" }
 
 [categories.mlcode]
 name = "ML Coding"
@@ -100,7 +98,4 @@ topics = [
 [applications]
 # Folder inside the vault holding applications.csv and resume-versions.csv.
 folder = "Applications"
-
-# Hotkey for the in-Obsidian "Log Application" prompts.
-hotkey = { modifiers = ["Mod", "Shift"], key = "A" }
 ```
