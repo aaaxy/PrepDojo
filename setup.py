@@ -30,6 +30,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -152,21 +153,36 @@ def run_generate(vault: str) -> None:
 
 MANUAL_PLUGINS = (
     "  Install the three plugins by hand any time:\n"
-    "    Settings → Community plugins → Browse → Dataview, QuickAdd, Calendar."
+    "    1. Settings → Community plugins → turn off Restricted mode\n"
+    "       (new vaults start with it on, and it blocks community plugins).\n"
+    "    2. Browse → install and enable Dataview, QuickAdd, Calendar."
 )
+
+
+def run_cli(args: list, timeout: int) -> tuple:
+    """Run an Obsidian CLI command without risking a hang. Output goes to a
+    temp file, not a pipe: the CLI may launch the Obsidian app, which inherits
+    a pipe and holds it open forever, so a piped run never returns. A timeout
+    guards the wait as well. Returns (returncode or None, output)."""
+    with tempfile.TemporaryFile(mode="w+", encoding="utf-8", errors="replace") as out:
+        try:
+            proc = subprocess.run(args, stdout=out, stderr=subprocess.STDOUT,
+                                  timeout=timeout)
+        except (subprocess.TimeoutExpired, OSError):
+            return None, ""
+        out.seek(0)
+        return proc.returncode, out.read()
 
 
 def active_vault(obsidian: str) -> Optional[str]:
     """Path of the vault Obsidian currently has open, or None if undeterminable.
     The CLI installs plugins into THIS vault — it can't target an arbitrary
     folder — so we use it to make sure we install into the right one."""
-    result = subprocess.run(
-        [obsidian, "vault", "info=path"], capture_output=True, text=True
-    )
-    if result.returncode != 0:
+    rc, out = run_cli([obsidian, "vault", "info=path"], timeout=30)
+    if rc != 0:  # nonzero, or None on timeout
         return None
     # Output may carry Obsidian's own warning lines; the path is the last one.
-    lines = [ln.strip() for ln in result.stdout.splitlines() if ln.strip()]
+    lines = [ln.strip() for ln in out.splitlines() if ln.strip()]
     return lines[-1] if lines else None
 
 
@@ -194,7 +210,7 @@ def install_plugins(vault: str) -> None:
         print(
             "  Skipping automatic plugin install. The Obsidian CLI installs into\n"
             "  the vault currently open in Obsidian, which isn't your target vault:\n"
-            f"    open now: {current or 'unknown'}\n"
+            f"    open now: {current or 'unknown (the CLI gave no answer)'}\n"
             f"    target:   {target}\n"
             "  Open your target vault in Obsidian, then rerun this script — or:\n"
             + MANUAL_PLUGINS
@@ -202,11 +218,12 @@ def install_plugins(vault: str) -> None:
         return
 
     # Community plugins can only be installed with Restricted Mode off.
-    subprocess.run([obsidian, "plugins:restrict", "off"])
+    run_cli([obsidian, "plugins:restrict", "off"], timeout=30)
     failed = []
     for pid in PLUGINS:
-        result = subprocess.run([obsidian, "plugin:install", f"id={pid}", "enable"])
-        if result.returncode != 0:
+        print(f"  installing {pid}...")
+        rc, _ = run_cli([obsidian, "plugin:install", f"id={pid}", "enable"], timeout=120)
+        if rc != 0:
             failed.append(pid)
     installed = [p for p in PLUGINS if p not in failed]
     if installed:
@@ -233,9 +250,11 @@ def ask_preferences(created: bool) -> None:
         username = input("LeetCode username (Enter to skip): ").strip().strip('"')
         print(
             "\nIf you already keep daily notes in this vault, PrepDojo should\n"
-            "log into the same folder."
+            "log into the same folder. Otherwise the default works fine."
         )
-        folder = input('Daily notes folder [Calendar/Daily Notes]: ').strip().strip('"')
+        folder = input(
+            'Daily notes folder (press Enter to use "Calendar/Daily Notes"): '
+        ).strip().strip('"')
     except EOFError:
         print("\n(no interactive terminal — keeping defaults; edit config.toml to change)")
         return

@@ -90,7 +90,7 @@ Setup asks two optional questions along the way: your LeetCode username (powers 
 
 **Step 4: Finish in Obsidian**, whichever version you're on:
 
-1. Open **Settings → Community plugins**, click the ⚙️ next to **Dataview**, and turn on **Enable JavaScript queries**.
+1. Open **Settings → Community plugins** and open **Dataview**'s settings (the ⚙️ next to it, or the **···** menu on newer versions). Turn on **Enable JavaScript queries**.
 2. Open the dashboard note in Reading view and click a button. Done.
 
 The tables start empty. Your first log fills them, and your streak starts counting.
