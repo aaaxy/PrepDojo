@@ -8,8 +8,8 @@ Runs the scriptable parts of the Quick start, in order:
   3. install + enable the required Obsidian plugins via the Obsidian CLI
 
 A few steps can only be done in Obsidian's GUI (enabling the CLI, toggling
-Dataview's JavaScript queries, assigning hotkeys). This script does everything
-else and prints exactly what's left at the end.
+Dataview's JavaScript queries). This script does everything else and prints
+exactly what's left at the end.
 
 Usage:
     python3 setup.py /path/to/YourVault
@@ -343,8 +343,6 @@ def main() -> None:
         "\nAlmost there. Finish these in Obsidian (one-time, GUI only):\n"
         "  1. Restart Obsidian.\n"
         "  2. Dataview settings → enable 'JavaScript queries'.\n"
-        "  3. Settings → Hotkeys → search 'QuickAdd' → assign hotkeys\n"
-        "     (suggested: Cmd/Ctrl+Shift+L for LeetCode).\n"
         "Then open your dashboard note in Reading view and log your first entry."
     )
 
