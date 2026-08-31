@@ -31,6 +31,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -178,7 +179,7 @@ def active_vault(obsidian: str) -> Optional[str]:
     """Path of the vault Obsidian currently has open, or None if undeterminable.
     The CLI installs plugins into THIS vault — it can't target an arbitrary
     folder — so we use it to make sure we install into the right one."""
-    rc, out = run_cli([obsidian, "vault", "info=path"], timeout=30)
+    rc, out = run_cli([obsidian, "vault", "info=path"], timeout=8)
     if rc != 0:  # nonzero, or None on timeout
         return None
     # Output may carry Obsidian's own warning lines; the path is the last one.
@@ -186,8 +187,28 @@ def active_vault(obsidian: str) -> Optional[str]:
     return lines[-1] if lines else None
 
 
+def launch_vault(vault: Path) -> None:
+    """Open the target vault in Obsidian, detached. The CLI only answers
+    queries while the app is running: invoked cold, it boots the whole app
+    and never returns. So the app must be up, with the right vault, before
+    any CLI call. The obsidian:// URI does both."""
+    from urllib.parse import quote
+    uri = "obsidian://open?path=" + quote(str(vault))
+    try:
+        if sys.platform == "darwin":
+            subprocess.run(["open", uri], timeout=15)
+        elif os.name == "nt":
+            os.startfile(uri)  # noqa — Windows only
+        else:
+            subprocess.run(["xdg-open", uri], timeout=15)
+    except Exception:
+        pass
+
+
 def install_plugins(vault: str) -> None:
     obsidian = shutil.which("obsidian")
+    if obsidian:
+        print(f"  found the Obsidian CLI: {obsidian}", flush=True)
     if not obsidian:
         print(
             "  The 'obsidian' command isn't on your PATH, so plugins were NOT\n"
@@ -205,7 +226,21 @@ def install_plugins(vault: str) -> None:
     # unless the open vault is the one being set up, to avoid dropping plugins
     # into the wrong vault.
     target = Path(vault).expanduser().resolve()
-    current = active_vault(obsidian)
+    if sys.stdin.isatty():
+        # Open the vault before any CLI query: queries only answer while the
+        # app is running, and against a cold app each one burns its timeout.
+        # If Obsidian is already up this just focuses the window.
+        print("  opening your vault in Obsidian...", flush=True)
+        launch_vault(target)
+        print("  waiting for Obsidian to answer (up to a minute)...", flush=True)
+        current = None
+        for _ in range(8):
+            current = active_vault(obsidian)
+            if current is not None and Path(current).resolve() == target:
+                break
+            time.sleep(4)
+    else:
+        current = active_vault(obsidian)
     if current is None or Path(current).resolve() != target:
         print(
             "  Skipping automatic plugin install. The Obsidian CLI installs into\n"
@@ -221,7 +256,7 @@ def install_plugins(vault: str) -> None:
     run_cli([obsidian, "plugins:restrict", "off"], timeout=30)
     failed = []
     for pid in PLUGINS:
-        print(f"  installing {pid}...")
+        print(f"  installing {pid} (up to 2 minutes)...", flush=True)
         rc, _ = run_cli([obsidian, "plugin:install", f"id={pid}", "enable"], timeout=120)
         if rc != 0:
             failed.append(pid)
@@ -282,11 +317,10 @@ def main() -> None:
     print("PrepDojo setup")
     print("==============")
     print(
-        "Before you run this: open your target vault in Obsidian at least once\n"
-        "(so its CLI can install plugins into it), then quit Obsidian so the\n"
-        "generated files install cleanly. Step 3 reopens Obsidian for the plugins.\n"
-        "If the vault open in Obsidian isn't your target, step 3 safely skips and\n"
-        "tells you how to finish."
+        "Before you run this: quit Obsidian, so the generated files install\n"
+        "cleanly. Step 3 opens your vault in Obsidian itself and installs the\n"
+        "plugins through its CLI. If that can't work on your setup, it prints\n"
+        "the short manual path instead."
     )
 
     step(1, 3, "Creating your config")
