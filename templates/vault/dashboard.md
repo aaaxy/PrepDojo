@@ -392,9 +392,10 @@ async function render() {
     "Heard back? Hit ✎ Update, set the new status, and it shows up here.",
     attr: { style: "font-size: 0.8em; font-style: italic; color: #8a8a8a; margin: 0 0 8px 0;" } });
   if (inInterviews.length) {
-    dv.table(["Company", "Position", "Stage", "Last update", "Follow-up"],
+    dv.table(["Company", "Position", "Resume", "Stage", "Last update", "Follow-up"],
       inInterviews.map(r => [r["Company"],
         r["Job Link"] ? "[" + r["Position Title"] + "](" + r["Job Link"] + ")" : r["Position Title"],
+        r["Resume Version"] || "—",
         r["Status"], r["Last Update"] || "—", r["Follow-up Date"] || "—"]));
   }
 
