@@ -410,6 +410,7 @@ async function render() {
     ["Ever Offer", ever("Offer")],
     ["Withdrawn", byStatus("Withdrawn")],
     ["Rejected", byStatus("Rejected")],
+    ["Position filled", byStatus("Position Filled")],
     ["Total applications", rows.length],
   ]);
 

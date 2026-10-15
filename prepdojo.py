@@ -300,7 +300,8 @@ def cmd_topics(_args, cfg) -> None:
 # --- job application tracking (CSV-based) ---------------------------------
 
 APP_STATUSES = ["Wishlist", "Applied", "OA", "Phone Screen", "Onsite",
-                "Team Match", "Offer", "Rejected", "Ghosted", "Withdrawn"]
+                "Team Match", "Offer", "Rejected", "Position Filled",
+                "Ghosted", "Withdrawn"]
 
 APP_HEADER = ["Company", "Position Title", "Req ID", "Job Link", "Location",
               "Remote?", "Comp Range", "Applied Date", "Resume Version",

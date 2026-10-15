@@ -12,7 +12,7 @@ module.exports = async (params) => {
   const APPS = FOLDER + "/applications.csv";
 
   const STATUSES = ["Applied", "HR Call", "HM Interview", "OA", "Phone Screen",
-    "Onsite", "Team Match", "Offer", "Rejected", "Withdrawn", "Wishlist"];
+    "Onsite", "Team Match", "Offer", "Rejected", "Position Filled", "Withdrawn", "Wishlist"];
   const ACTIVE = ["HR Call", "HM Interview", "OA", "Phone Screen", "Onsite", "Team Match"];
 
   // --- CSV helpers (quote-aware, same conventions as the dashboard) ---
