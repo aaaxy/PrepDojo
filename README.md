@@ -2,16 +2,11 @@
 
 *An interview prep and job application tracker that lives in your Obsidian vault.*
 
-<!-- TODO hero image: the single strongest asset goes here, above the fold.
-     Best candidate: a short GIF of the full loop — dashboard button → prompts →
-     entry appears → dashboard numbers tick up. Record as docs/media/hero.gif,
-     then uncomment:
-![Log in a click, see it add up](docs/media/hero.gif)
--->
-
 Job hunting means doing a lot of small things every day. A LeetCode problem at breakfast, some ML review at night, a batch of applications in between. None of it feels like much, and a week later you can't remember any of it. PrepDojo keeps all of it on one dashboard page. You log with a click, or just tell an AI "did two sum today", and the same page shows your streak, which topics need work, how many applications went out this week, and which resume is actually getting you interviews.
 
 Everything lives in plain files in an [Obsidian](https://obsidian.md) vault on your own computer and your records stay readable in any editor.
+
+![Everything you logged, on one page](docs/media/hero.gif)
 
 ## ✨ What you can do
 
