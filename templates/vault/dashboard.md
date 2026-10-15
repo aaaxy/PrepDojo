@@ -774,6 +774,23 @@ render();
 ## 📚 @@NAME_MLFUND@@
 
 ```dataviewjs
+const bar = dv.container.createEl("div", { attr: { style:
+  "display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 6px 0;" } });
+const manual = bar.createEl("button", { text: "＋ @@NAME_MLFUND@@", attr: { style:
+  "border-left: 3px solid #36b37e; background: #36b37e1f; border-radius: 5px;" } });
+manual.onclick = async () => {
+  const qa = app.plugins.plugins.quickadd;
+  if (!qa || !qa.api || !qa.api.executeChoice) {
+    new Notice("QuickAdd isn't available — is the plugin enabled?"); return;
+  }
+  if (!(qa.settings?.choices || []).some(c => c.name === "Log @@NAME_MLFUND@@")) {
+    new Notice("QuickAdd choice 'Log @@NAME_MLFUND@@' not found — deploy PrepDojo's QuickAdd config (see README → Updating).");
+    return;
+  }
+  try { await qa.api.executeChoice("Log @@NAME_MLFUND@@"); }
+  catch (e) { console.debug("PrepDojo: choice cancelled or failed", e); }
+};
+
 const logged = i => !i.task || i.completed;
 const rows = [];
 for (const p of dv.pages('"@@DAILY_NOTES_FOLDER@@"')) {
@@ -805,6 +822,23 @@ dv.table(["Date", "Topic", "Confidence"], rows.map(r => [r.link, r.topic, r.conf
 ## 🛠️ @@NAME_MLCODE@@
 
 ```dataviewjs
+const bar = dv.container.createEl("div", { attr: { style:
+  "display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 6px 0;" } });
+const manual = bar.createEl("button", { text: "＋ @@NAME_MLCODE@@", attr: { style:
+  "border-left: 3px solid #9f7fff; background: #9f7fff1f; border-radius: 5px;" } });
+manual.onclick = async () => {
+  const qa = app.plugins.plugins.quickadd;
+  if (!qa || !qa.api || !qa.api.executeChoice) {
+    new Notice("QuickAdd isn't available — is the plugin enabled?"); return;
+  }
+  if (!(qa.settings?.choices || []).some(c => c.name === "Log @@NAME_MLCODE@@")) {
+    new Notice("QuickAdd choice 'Log @@NAME_MLCODE@@' not found — deploy PrepDojo's QuickAdd config (see README → Updating).");
+    return;
+  }
+  try { await qa.api.executeChoice("Log @@NAME_MLCODE@@"); }
+  catch (e) { console.debug("PrepDojo: choice cancelled or failed", e); }
+};
+
 const logged = i => !i.task || i.completed;
 const rows = [];
 for (const p of dv.pages('"@@DAILY_NOTES_FOLDER@@"')) {
@@ -907,6 +941,23 @@ render();
 ## 💬 @@NAME_BQ@@
 
 ```dataviewjs
+const bar = dv.container.createEl("div", { attr: { style:
+  "display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 6px 0;" } });
+const manual = bar.createEl("button", { text: "＋ @@NAME_BQ@@", attr: { style:
+  "border-left: 3px solid #ff7eb6; background: #ff7eb61f; border-radius: 5px;" } });
+manual.onclick = async () => {
+  const qa = app.plugins.plugins.quickadd;
+  if (!qa || !qa.api || !qa.api.executeChoice) {
+    new Notice("QuickAdd isn't available — is the plugin enabled?"); return;
+  }
+  if (!(qa.settings?.choices || []).some(c => c.name === "Log @@NAME_BQ@@")) {
+    new Notice("QuickAdd choice 'Log @@NAME_BQ@@' not found — deploy PrepDojo's QuickAdd config (see README → Updating).");
+    return;
+  }
+  try { await qa.api.executeChoice("Log @@NAME_BQ@@"); }
+  catch (e) { console.debug("PrepDojo: choice cancelled or failed", e); }
+};
+
 const logged = i => !i.task || i.completed;
 const rows = [];
 for (const p of dv.pages('"@@DAILY_NOTES_FOLDER@@"')) {
