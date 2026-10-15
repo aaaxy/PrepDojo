@@ -6,7 +6,7 @@ Job hunting means doing a lot of small things every day. A LeetCode problem at b
 
 Everything lives in plain files in an [Obsidian](https://obsidian.md) vault on your own computer and your records stay readable in any editor.
 
-![Everything you logged, on one page](docs/media/hero.gif)
+![Everything you logged, on one page](docs/media/dashboard-tour.gif)
 
 ## ✨ What you can do
 
